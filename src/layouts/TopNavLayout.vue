@@ -90,7 +90,7 @@ async function handleChangePwd() {
 <template>
   <a-layout style="min-height: 100vh">
     <header class="top-nav">
-      <div class="nav-logo">⚡ N3 Lite</div>
+      <div class="nav-logo" @click="router.push('/overview')" style="cursor: pointer;">⚡ N3 Lite</div>
       <nav class="nav-items">
         <div
           v-for="item in navItems"
@@ -154,25 +154,26 @@ async function handleChangePwd() {
 
 <style scoped>
 .top-nav {
-  height: 60px;
+  height: 96px;
   display: grid;
-  grid-template-columns: 180px 1fr 200px;
+  grid-template-columns: 220px 1fr 240px;
   align-items: center;
-  padding: 0 28px;
-  background: linear-gradient(180deg, rgba(6,13,26,0.98), rgba(10,22,40,0.95));
-  border-bottom: 1px solid rgba(0, 212, 255, 0.12);
-  backdrop-filter: blur(20px);
+  padding: 0 48px;
+  background: linear-gradient(180deg, rgba(4,10,22,0.99), rgba(8,18,36,0.97));
+  border-bottom: 1px solid rgba(0, 212, 255, 0.18);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(0,212,255,0.08);
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
 .nav-logo {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   color: #00d4ff;
-  letter-spacing: 0.5px;
-  text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+  letter-spacing: 1px;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.6), 0 0 60px rgba(0, 212, 255, 0.2);
 }
 
 .nav-items {
@@ -184,26 +185,28 @@ async function handleChangePwd() {
 
 .nav-item {
   position: relative;
-  padding: 8px 28px;
-  font-size: 14px;
+  padding: 14px 52px;
+  font-size: 17px;
   color: #64748b;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.25s;
   user-select: none;
-  letter-spacing: 0.3px;
+  letter-spacing: 2px;
   white-space: nowrap;
 }
 
 .nav-item:hover {
   color: #e2e8f0;
-  background: rgba(0, 212, 255, 0.05);
+  background: rgba(0, 212, 255, 0.08);
+  transform: translateY(-1px);
 }
 
 .nav-item.active {
   color: #00d4ff;
-  font-weight: 600;
-  background: rgba(0, 212, 255, 0.08);
+  font-weight: 700;
+  background: rgba(0, 212, 255, 0.12);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
 }
 
 /* 气泡效果 */
@@ -259,7 +262,14 @@ async function handleChangePwd() {
 }
 
 .nav-username {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 500;
   color: #e2e8f0;
+}
+
+.nav-avatar {
+  background: linear-gradient(135deg, #0e7490, #00d4ff);
+  font-size: 14px;
+  font-weight: 700;
 }
 </style>
