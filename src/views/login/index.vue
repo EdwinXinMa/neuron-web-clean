@@ -37,7 +37,7 @@ async function handleLogin() {
 
 <template>
   <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #001529;">
-    <a-card style="width: 400px;" title="⚡ N3 Lite 云平台">
+    <a-card style="width: 400px;" title="⚡ N3 Lite 云平台测试">
       <a-form layout="vertical">
         <a-form-item label="用户名">
           <a-input v-model:value="form.username" placeholder="请输入用户名" size="large" @pressEnter="handleLogin" />
