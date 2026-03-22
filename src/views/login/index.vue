@@ -37,7 +37,7 @@ async function handleLogin() {
 
 <template>
   <div style="display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #001529;">
-    <a-card style="width: 400px;" title="大家好"vertical">
+    <a-card style="width: 400px;" title="大家好" vertical>
         <a-form-item label="鐢ㄦ埛鍚?>
           <a-input v-model:value="form.username" placeholder="璇疯緭鍏ョ敤鎴峰悕" size="large" @pressEnter="handleLogin" />
         </a-form-item>
