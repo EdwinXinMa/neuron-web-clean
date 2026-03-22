@@ -90,7 +90,9 @@ async function handleChangePwd() {
 <template>
   <a-layout style="min-height: 100vh">
     <header class="top-nav">
-      <div class="nav-logo" @click="router.push('/overview')" style="cursor: pointer;">⚡ N3 Lite</div>
+      <div class="nav-logo" @click="router.push('/overview')" style="cursor: pointer;">
+        <img src="/logo.png" alt="logo" style="height: 72px; object-fit: contain;" />
+      </div>
       <nav class="nav-items">
         <div
           v-for="item in navItems"
