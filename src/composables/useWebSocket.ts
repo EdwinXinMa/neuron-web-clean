@@ -1,21 +1,67 @@
-import { ref } from 'vue'
+import { ref, onBeforeUnmount } from 'vue'
 
 /**
- * WebSocket 封装（占位）
+ * OTA WebSocket 封装
+ * 连接后端 /otaSocket/{token}，接收 OTA 升级进度推送
  */
-export function useWebSocket(_url: string) {
+export function useWebSocket(url: string) {
   const connected = ref(false)
   const data = ref<any>(null)
+  let ws: WebSocket | null = null
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
   function connect() {
-    // TODO: 实现 WebSocket 连接
-    console.log('WebSocket connect - 待实现')
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+      return
+    }
+
+    try {
+      ws = new WebSocket(url)
+    } catch (e) {
+      console.error('WebSocket connection failed:', e)
+      return
+    }
+
+    ws.onopen = () => {
+      connected.value = true
+      console.log('[OtaWS] Connected:', url)
+    }
+
+    ws.onmessage = (event) => {
+      try {
+        data.value = JSON.parse(event.data)
+      } catch {
+        data.value = event.data
+      }
+    }
+
+    ws.onclose = () => {
+      connected.value = false
+      ws = null
+    }
+
+    ws.onerror = (err) => {
+      console.error('[OtaWS] Error:', err)
+    }
   }
 
   function disconnect() {
-    // TODO: 实现断开连接
-    console.log('WebSocket disconnect - 待实现')
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer)
+      reconnectTimer = null
+    }
+    if (ws) {
+      ws.onclose = null // prevent reconnect on intentional close
+      ws.close()
+      ws = null
+    }
+    connected.value = false
+    data.value = null
   }
+
+  onBeforeUnmount(() => {
+    disconnect()
+  })
 
   return { connected, data, connect, disconnect }
 }

@@ -253,7 +253,12 @@
   import { message } from 'ant-design-vue';
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
-  
+  import { useDeviceEvents } from '@/composables/useDeviceEvents';
+
+  // 监听设备事件，自动刷新列表
+  useDeviceEvents(() => {
+    loadList();
+  });
 
   // ==================== State ====================
   const route = useRoute();
@@ -291,6 +296,21 @@
   const otaTaskId = ref('');
   const otaError = ref('');
   let otaWs: WebSocket | null = null;
+  let otaAnimTimer: ReturnType<typeof setInterval> | null = null;
+
+  // 平滑过渡进度条：从当前值缓动到目标值
+  function animateOtaProgress(target: number, durationMs = 2000) {
+    if (otaAnimTimer) { clearInterval(otaAnimTimer); otaAnimTimer = null; }
+    const start = otaProgress.value;
+    if (start >= target) { otaProgress.value = target; return; }
+    const step = Math.max(1, Math.round((target - start) / (durationMs / 60)));
+    otaAnimTimer = setInterval(() => {
+      otaProgress.value = Math.min(otaProgress.value + step, target);
+      if (otaProgress.value >= target) {
+        if (otaAnimTimer) { clearInterval(otaAnimTimer); otaAnimTimer = null; }
+      }
+    }, 60);
+  }
 
   const otaStatusText = computed(() => {
     const map: Record<string, string> = {
@@ -528,54 +548,139 @@
 
   async function confirmOta() {
     if (!selectedFw.value || !selectedDevice.value) return;
+    const deviceSn = selectedDevice.value.sn;
+
+    // 1. 先建 WebSocket，确保连上后再发升级指令
+    otaPhase.value = 'running';
+    otaStatus.value = 'PENDING';
+    otaProgress.value = 0;
+    otaError.value = '';
+    otaMessage.value = '正在建立连接...';
+    showOtaModal.value = false;
+
+    const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${wsProtocol}//${location.host}/api/otaSocket/${deviceSn}`;
+
+    function setupWsMessageHandler(wsConn: WebSocket) {
+      wsConn.onmessage = (event) => {
+        try {
+          const d = JSON.parse(event.data);
+          const newStatus = d.status || otaStatus.value;
+          otaMessage.value = d.message || otaMessage.value;
+
+          if (newStatus !== otaStatus.value) otaStatus.value = newStatus;
+          if (newStatus === 'PENDING') {
+            animateOtaProgress(5, 3000);
+          } else if (newStatus === 'DOWNLOADING') {
+            const rawP = d.progress ?? 0;
+            const target = rawP >= 100 ? 50 : Math.round(5 + (rawP / 100) * 45);
+            animateOtaProgress(target, 2000);
+          } else if (newStatus === 'INSTALLING') {
+            const rawP = d.progress ?? 0;
+            const target = Math.round(55 + (rawP / 100) * 35);
+            animateOtaProgress(target, 2000);
+          } else if (newStatus === 'COMPLETED') {
+            animateOtaProgress(100, 800);
+            message.success('固件升级成功');
+            setTimeout(() => loadDetail(deviceSn), 1500);
+          } else if (newStatus === 'FAILED') {
+            otaError.value = d.message || '升级失败，请重试';
+            if (otaAnimTimer) { clearInterval(otaAnimTimer); otaAnimTimer = null; }
+          }
+        } catch { /* ignore parse errors */ }
+      };
+    }
+
+    // 启动轮询兜底（无论 WebSocket 是否连上都启动，确保不漏状态）
+    function startPollingFallback() {
+      const pollTimer = setInterval(async () => {
+        if (!otaTaskId.value) return;
+        try {
+          const r: any = await http.get(`/firmware/upgrade/task/${otaTaskId.value}`);
+          const d = r.result || r;
+          // 仅在 WebSocket 未推送更新时才用轮询值
+          const curStatus = otaStatus.value;
+          if (d.status && d.status !== curStatus) {
+            otaStatus.value = d.status;
+            otaProgress.value = d.progress ?? otaProgress.value;
+          }
+          if (d.status === 'COMPLETED') {
+            if (curStatus !== 'COMPLETED') {
+              otaProgress.value = 100;
+              message.success('固件升级成功');
+              setTimeout(() => loadDetail(deviceSn), 1000);
+            }
+            clearInterval(pollTimer);
+          } else if (d.status === 'FAILED') {
+            otaError.value = d.errorMsg || d.message || '升级失败，请重试';
+            clearInterval(pollTimer);
+          }
+        } catch { /* ignore */ }
+      }, 2000);
+      return pollTimer;
+    }
+
+    try {
+      otaWs = new WebSocket(wsUrl);
+    } catch {
+      otaWs = null;
+    }
+
+    // 2. 等 WebSocket 连上（最多 3 秒），然后发升级请求
+    const wsReady = new Promise<void>((resolve) => {
+      if (!otaWs) { resolve(); return; }
+      const timeout = setTimeout(() => resolve(), 3000);
+      otaWs.onopen = () => { clearTimeout(timeout); resolve(); };
+      otaWs.onerror = () => { clearTimeout(timeout); resolve(); };
+    });
+
+    await wsReady;
+
+    if (otaWs && otaWs.readyState === WebSocket.OPEN) {
+      setupWsMessageHandler(otaWs);
+    }
+
+    // 3. 发起升级请求
     try {
       const res: any = await http.post('/firmware/upgrade/start', {
         firmwareId: selectedFw.value,
-        deviceSn: selectedDevice.value.sn,
+        deviceSn: deviceSn,
       });
       const taskId = typeof res?.result === 'string' ? res.result : res?.result?.taskId || res?.taskId;
       if (!taskId) {
         console.error('OTA start response:', JSON.stringify(res));
         message.error('升级指令下发失败：未获取到任务ID');
+        otaPhase.value = 'idle';
+        closeOtaWs();
         return;
       }
       otaTaskId.value = taskId;
-      showOtaModal.value = false;
-      otaPhase.value = 'running';
-      otaStatus.value = 'PENDING';
-      otaProgress.value = 0;
-      otaError.value = '';
-      otaMessage.value = '';
+      animateOtaProgress(5, 2000);
 
-      // 轮询查询任务状态（WebSocket TODO: 后端就绪后切回）
-      const deviceSn = selectedDevice.value.sn;
-      const pollTimer = setInterval(async () => {
-        try {
-          const r: any = await http.get(`/firmware/upgrade/task/${otaTaskId.value}`);
-          const d = r.result || r;
-          otaStatus.value = d.status || otaStatus.value;
-          otaProgress.value = d.progress ?? otaProgress.value;
+      // 4. 启动轮询兜底
+      const pollTimer = startPollingFallback();
+      // 保存 cleanup 引用
+      const origClose = otaWs;
+      if (origClose) {
+        const origOnClose = origClose.onclose;
+        origClose.onclose = () => { clearInterval(pollTimer); };
+      }
+      // closeOtaWs 时也清理 poll
+      const _closeOtaWs = closeOtaWs;
+      // 挂在 otaWs 上方便统一清理
+      if (!otaWs) {
+        otaWs = { close: () => clearInterval(pollTimer) } as any;
+      }
 
-          if (d.status === 'COMPLETED') {
-            otaProgress.value = 100;
-            clearInterval(pollTimer);
-            otaWs = null;
-            message.success('固件升级成功');
-            setTimeout(() => loadDetail(deviceSn), 1000);
-          } else if (d.status === 'FAILED') {
-            otaError.value = d.errorMsg || '升级失败，请重试';
-            clearInterval(pollTimer);
-            otaWs = null;
-          }
-        } catch { /* 网络抖动忽略 */ }
-      }, 1000);
-      otaWs = { close: () => clearInterval(pollTimer) } as any;
     } catch (e: any) {
       message.error('升级指令下发失败：' + (e.message || '网络错误'));
+      otaPhase.value = 'idle';
+      closeOtaWs();
     }
   }
 
   function closeOtaWs() {
+    if (otaAnimTimer) { clearInterval(otaAnimTimer); otaAnimTimer = null; }
     if (otaWs) {
       otaWs.onmessage = null;
       otaWs.onerror = null;
@@ -600,12 +705,20 @@
     selectedFw.value = '';
   }
 
-  function confirmDlm() {
-    if (selectedDevice.value) {
+  async function confirmDlm() {
+    if (!selectedDevice.value) return;
+    try {
+      await http.post(`/device/${selectedDevice.value.sn}/dlm`, {
+        breakerRating: selectedDlm.value,
+      });
       selectedDevice.value.ctMax = selectedDlm.value;
+      showDlmModal.value = false;
+      message.success(`阈值已修改为 ${selectedDlm.value}A`);
+      // 刷新详情
+      setTimeout(() => loadDetail(selectedDevice.value!.sn), 500);
+    } catch (e: any) {
+      message.error('DLM 修改失败：' + (e.message || '网络错误'));
     }
-    showDlmModal.value = false;
-    message.success(`阈值已修改为 ${selectedDlm.value}A`);
   }
 
   // ==================== Init from URL ====================

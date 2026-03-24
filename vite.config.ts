@@ -11,6 +11,16 @@ export default defineConfig({
   },
   server: {
     proxy: {
+      '/api/otaSocket': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+        ws: true,
+      },
+      '/api/deviceSocket': {
+        target: 'http://127.0.0.1:8080',
+        changeOrigin: true,
+        ws: true,
+      },
       '/api': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,

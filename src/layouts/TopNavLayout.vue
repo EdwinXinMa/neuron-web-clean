@@ -4,32 +4,48 @@ import { useRoute, useRouter } from 'vue-router'
 import { UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import http from '@/api/http'
+import { useDeviceEvents } from '@/composables/useDeviceEvents'
 
 const route = useRoute()
 const router = useRouter()
 
 const selectedKeys = computed(() => [route.path])
-const alertCount = 3
+const alertCount = ref(0)
 
 // 从 localStorage 读取用户信息
 const userInfo = ref<any>({})
 onMounted(() => {
   try {
     const raw = localStorage.getItem('userInfo') || '{}'
-    console.log('localStorage userInfo:', raw)
     userInfo.value = JSON.parse(raw)
-    console.log('parsed role:', userInfo.value.role)
   } catch {
     userInfo.value = {}
   }
+  loadAlertBadge()
+  // 每 60 秒刷新角标
+  setInterval(loadAlertBadge, 60000)
 })
+
+// 收到告警事件时立即刷新角标
+useDeviceEvents((event) => {
+  if (event.type === 'ALERT') {
+    loadAlertBadge()
+  }
+})
+
+async function loadAlertBadge() {
+  try {
+    const res: any = await http.get('/alert/badge')
+    alertCount.value = res.result ?? res ?? 0
+  } catch { /* ignore */ }
+}
 
 const username = computed(() => userInfo.value.realname || userInfo.value.username || '用户')
 
 const navItems = [
   { path: '/overview', label: '总览' },
   { path: '/devices', label: '设备' },
-  { path: '/alerts', label: '告警', badge: alertCount },
+  { path: '/alerts', label: '告警', badgeKey: 'alert' },
   { path: '/oplog', label: '操作日志' },
   { path: '/management', label: '设备管理' },
 ]
@@ -101,7 +117,7 @@ async function handleChangePwd() {
           @click="router.push(item.path)"
         >
           {{ item.label }}
-          <a-badge v-if="item.badge" :count="item.badge" :offset="[6, -8]" />
+          <a-badge v-if="item.badgeKey === 'alert' && alertCount > 0" :count="alertCount" :offset="[6, -8]" />
           <span v-if="route.path === item.path" class="nav-bubble"></span>
         </div>
       </nav>

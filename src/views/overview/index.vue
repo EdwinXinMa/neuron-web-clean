@@ -69,8 +69,14 @@ import 'leaflet/dist/leaflet.css';
 import { getDeviceStats, getDeviceMapData } from '@/api/device';
 import { AppstoreOutlined, CheckCircleOutlined, DisconnectOutlined, WarningOutlined, ClockCircleOutlined } from '@ant-design/icons-vue';
 import http from '@/api/http';
+import { useDeviceEvents } from '@/composables/useDeviceEvents';
 
 const router = useRouter();
+
+// 监听设备事件，自动刷新仪表盘
+useDeviceEvents(() => {
+  loadDashboard();
+});
 
 // ─── 统计 ───
 const counts = reactive({ total: 0, online: 0, offline: 0, fault: 0, unactivated: 0, alertBadge: 0 });
@@ -255,18 +261,21 @@ onBeforeUnmount(() => {
 <style scoped>
 /* ─── 全局布局 ─── */
 .overview-screen {
-  min-height: 100vh;
+  height: calc(100vh - 96px);
   background: #0a1628;
-  padding: 20px;
+  padding: 16px 20px;
   box-sizing: border-box;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── 数字卡片 ─── */
 .stats-row {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .stat-col {
@@ -341,7 +350,8 @@ onBeforeUnmount(() => {
 .main-area {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 140px);
+  flex: 1;
+  min-height: 0;
 }
 
 .map-panel {
