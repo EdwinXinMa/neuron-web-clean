@@ -106,6 +106,7 @@ async function handleLogin() {
 .login-screen {
   display: flex;
   min-height: 100vh;
+  position: relative;
 }
 
 .login-left {
