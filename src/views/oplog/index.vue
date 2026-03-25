@@ -1,9 +1,5 @@
 <template>
   <div class="oplog-screen">
-    <div class="page-header">
-      <h2 class="page-title">操作日志</h2>
-    </div>
-
     <!-- 筛选栏（一行） -->
     <div class="filter-bar">
       <div class="filter-group">
@@ -83,10 +79,10 @@ const dateRange = ref<[Dayjs, Dayjs] | null>(null)
 
 const typeOptions = [
   { label: '全部', value: 'all' },
-  { label: 'OTA 升级', value: 'OTA 升级' },
-  { label: 'DLM 修改', value: 'DLM 修改' },
-  { label: '远程重启', value: '远程重启' },
-  { label: '远程重置', value: '远程重置' },
+  { label: 'OTA 升级', value: 'OTA_UPGRADE' },
+  { label: 'DLM 修改', value: 'DLM_CONFIG' },
+  { label: '远程重启', value: 'REMOTE_REBOOT' },
+  { label: '远程重置', value: 'REMOTE_RESET' },
 ]
 
 // 不同操作类型对应的点颜色 class
@@ -126,7 +122,7 @@ async function loadOpLogs() {
   try {
     const params: any = { pageNo: opPage.value, pageSize: 10 }
     if (snKeyword.value.trim()) params.deviceSn = snKeyword.value.trim()
-    if (activeType.value !== 'all') params.operateType = activeType.value
+    if (activeType.value !== 'all') params.opType = activeType.value
     if (dateRange.value) {
       params.startTime = dateRange.value[0].format('YYYY-MM-DD 00:00:00')
       params.endTime = dateRange.value[1].format('YYYY-MM-DD 23:59:59')
@@ -182,17 +178,6 @@ function goDevice(sn: string) {
   padding: 24px;
   min-height: 100vh;
   background: #0a1628;
-}
-
-.page-header {
-  margin-bottom: 20px;
-}
-
-.page-title {
-  color: #e2e8f0;
-  font-size: 22px;
-  font-weight: 600;
-  margin: 0;
 }
 
 /* ── 筛选栏 ── */

@@ -1,9 +1,5 @@
 <template>
   <div class="alerts-screen">
-    <div class="page-header">
-      <h2 class="page-title">告警记录</h2>
-    </div>
-
     <!-- 筛选栏 -->
     <div class="filter-bar">
       <div class="filter-group">
@@ -150,17 +146,6 @@ function goDevice(sn: string) {
   padding: 24px;
   min-height: 100vh;
   background: #0a1628;
-}
-
-.page-header {
-  margin-bottom: 20px;
-}
-
-.page-title {
-  color: #e2e8f0;
-  font-size: 22px;
-  font-weight: 600;
-  margin: 0;
 }
 
 /* ── 筛选栏 ── */

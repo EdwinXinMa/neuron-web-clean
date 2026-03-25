@@ -96,7 +96,22 @@
             <div class="section-title">设备状态</div>
             <div class="info-row">
               <span class="info-label">在线状态</span>
-              <a-badge :status="badgeStatus(selectedDevice.status)" :text="statusLabel(selectedDevice.status)" :class="`badge-${selectedDevice.status}`" />
+              <span class="info-value">
+                <a-badge :status="badgeStatus(selectedDevice.status)" :text="statusLabel(selectedDevice.status)" :class="`badge-${selectedDevice.status}`" />
+                <a-tooltip v-if="(selectedDevice.status === 'online' || selectedDevice.status === 'fault') && !resetting" title="重启">
+                  <a-popconfirm
+                    title="确认重启该设备？"
+                    ok-text="确认"
+                    cancel-text="取消"
+                    @confirm="resetDevice"
+                  >
+                    <ReloadOutlined class="reset-icon" />
+                  </a-popconfirm>
+                </a-tooltip>
+                <a-tooltip v-if="resetting" title="重启中...">
+                  <LoadingOutlined class="reset-icon resetting" />
+                </a-tooltip>
+              </span>
             </div>
             <div class="info-row">
               <span class="info-label">最后心跳</span>
@@ -254,10 +269,15 @@
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents } from '@/composables/useDeviceEvents';
+  import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons-vue';
 
   // 监听设备事件，自动刷新列表
   useDeviceEvents(() => {
     loadList();
+    if (selectedSn.value) {
+      loadDetail(selectedSn.value);
+      resetting.value = false;
+    }
   });
 
   // ==================== State ====================
@@ -539,6 +559,21 @@
     }
   }
 
+  const resetting = ref(false);
+
+  async function resetDevice() {
+    if (!selectedDevice.value) return;
+    const sn = selectedDevice.value.sn;
+    try {
+      resetting.value = true;
+      await http.post(`/device/${sn}/reset`, null, { params: { type: 'Soft' } });
+      message.success('重启命令已下发');
+    } catch (e: any) {
+      resetting.value = false;
+      message.error(e?.response?.data?.message || '重启命令下发失败');
+    }
+  }
+
   function openDlmModal() {
     if (deviceDetail.value?.ctData) {
       selectedDlm.value = deviceDetail.value.ctData.breakerRating || 32;
@@ -732,7 +767,6 @@
     const queryId = route.query.id as string;
     if (queryId) {
       selectedSn.value = queryId;
-      searchText.value = queryId;   // 搜索框填入 SN，列表自动定位到该设备
       loadDetail(queryId);
     }
     loadList();
@@ -1174,6 +1208,24 @@
 
   .action-btn:hover {
     color: #33dfff !important;
+  }
+
+  .reset-icon {
+    color: #00d4ff;
+    font-size: 14px;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .reset-icon:hover {
+    color: #33dfff;
+    transform: rotate(90deg);
+  }
+
+  .reset-icon.resetting {
+    color: #faad14;
+    cursor: default;
   }
 
   /* ── 内嵌 OTA 进度条 ── */
