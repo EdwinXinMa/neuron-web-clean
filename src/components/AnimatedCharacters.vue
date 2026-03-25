@@ -1,41 +1,68 @@
 <template>
   <div class="characters-container" ref="containerRef">
     <!-- 紫色角色 -->
-    <div ref="purpleRef" class="character purple" :style="purpleStyle">
+    <div ref="purpleRef" class="character purple" :class="{ laughing: loginFailed }" :style="purpleStyle">
       <div class="eyes-container" :style="purpleEyesStyle">
-        <EyeBall :size="18" :pupilSize="7" :maxDistance="5" :isBlinking="isPurpleBlinking"
-          :forceLookX="purpleForceLookX" :forceLookY="purpleForceLookY" />
-        <EyeBall :size="18" :pupilSize="7" :maxDistance="5" :isBlinking="isPurpleBlinking"
-          :forceLookX="purpleForceLookX" :forceLookY="purpleForceLookY" />
+        <template v-if="loginFailed">
+          <div class="laugh-eye">˄</div>
+          <div class="laugh-eye">˄</div>
+        </template>
+        <template v-else>
+          <EyeBall :size="18" :pupilSize="7" :maxDistance="5" :isBlinking="isPurpleBlinking"
+            :forceLookX="purpleForceLookX" :forceLookY="purpleForceLookY" />
+          <EyeBall :size="18" :pupilSize="7" :maxDistance="5" :isBlinking="isPurpleBlinking"
+            :forceLookX="purpleForceLookX" :forceLookY="purpleForceLookY" />
+        </template>
       </div>
+      <div v-if="loginFailed" class="laugh-mouth purple-mouth">ᗜ</div>
     </div>
 
     <!-- 黑色角色 -->
-    <div ref="blackRef" class="character black-char" :style="blackStyle">
+    <div ref="blackRef" class="character black-char" :class="{ laughing: loginFailed }" :style="blackStyle">
       <div class="eyes-container" :style="blackEyesStyle">
-        <EyeBall :size="16" :pupilSize="6" :maxDistance="4" :isBlinking="isBlackBlinking"
-          :forceLookX="blackForceLookX" :forceLookY="blackForceLookY" />
-        <EyeBall :size="16" :pupilSize="6" :maxDistance="4" :isBlinking="isBlackBlinking"
-          :forceLookX="blackForceLookX" :forceLookY="blackForceLookY" />
+        <template v-if="loginFailed">
+          <div class="laugh-eye laugh-eye-white">˄</div>
+          <div class="laugh-eye laugh-eye-white">˄</div>
+        </template>
+        <template v-else>
+          <EyeBall :size="16" :pupilSize="6" :maxDistance="4" :isBlinking="isBlackBlinking"
+            :forceLookX="blackForceLookX" :forceLookY="blackForceLookY" />
+          <EyeBall :size="16" :pupilSize="6" :maxDistance="4" :isBlinking="isBlackBlinking"
+            :forceLookX="blackForceLookX" :forceLookY="blackForceLookY" />
+        </template>
       </div>
+      <div v-if="loginFailed" class="laugh-mouth black-mouth">ᗜ</div>
     </div>
 
     <!-- 橙色角色 -->
-    <div ref="orangeRef" class="character orange" :style="orangeStyle">
+    <div ref="orangeRef" class="character orange" :class="{ laughing: loginFailed }" :style="orangeStyle">
       <div class="eyes-container pupils-only" :style="orangeEyesStyle">
-        <Pupil :size="12" :maxDistance="5" :forceLookX="orangeForceLookX" :forceLookY="orangeForceLookY" />
-        <Pupil :size="12" :maxDistance="5" :forceLookX="orangeForceLookX" :forceLookY="orangeForceLookY" />
+        <template v-if="loginFailed">
+          <div class="laugh-eye">˄</div>
+          <div class="laugh-eye">˄</div>
+        </template>
+        <template v-else>
+          <Pupil :size="12" :maxDistance="5" :forceLookX="orangeForceLookX" :forceLookY="orangeForceLookY" />
+          <Pupil :size="12" :maxDistance="5" :forceLookX="orangeForceLookX" :forceLookY="orangeForceLookY" />
+        </template>
       </div>
+      <div v-if="loginFailed" class="laugh-mouth orange-mouth">ᗜ</div>
     </div>
 
     <!-- 黄色角色 -->
-    <div ref="yellowRef" class="character yellow" :style="yellowStyle">
+    <div ref="yellowRef" class="character yellow" :class="{ laughing: loginFailed }" :style="yellowStyle">
       <div class="eyes-container pupils-only" :style="yellowEyesStyle">
-        <Pupil :size="12" :maxDistance="5" :forceLookX="yellowForceLookX" :forceLookY="yellowForceLookY" />
-        <Pupil :size="12" :maxDistance="5" :forceLookX="yellowForceLookX" :forceLookY="yellowForceLookY" />
+        <template v-if="loginFailed">
+          <div class="laugh-eye">˄</div>
+          <div class="laugh-eye">˄</div>
+        </template>
+        <template v-else>
+          <Pupil :size="12" :maxDistance="5" :forceLookX="yellowForceLookX" :forceLookY="yellowForceLookY" />
+          <Pupil :size="12" :maxDistance="5" :forceLookX="yellowForceLookX" :forceLookY="yellowForceLookY" />
+        </template>
       </div>
-      <!-- 嘴巴 -->
-      <div class="mouth" :style="yellowMouthStyle"></div>
+      <div class="mouth" v-if="!loginFailed" :style="yellowMouthStyle"></div>
+      <div v-if="loginFailed" class="laugh-mouth yellow-mouth">ᗜ</div>
     </div>
   </div>
 </template>
@@ -49,10 +76,12 @@ const props = withDefaults(defineProps<{
   isTyping?: boolean;
   showPassword?: boolean;
   passwordLength?: number;
+  loginFailed?: boolean;
 }>(), {
   isTyping: false,
   showPassword: false,
   passwordLength: 0,
+  loginFailed: false,
 });
 
 const containerRef = ref<HTMLElement>();
@@ -67,6 +96,8 @@ const isPurpleBlinking = ref(false);
 const isBlackBlinking = ref(false);
 const isLookingAtEachOther = ref(false);
 const isPurplePeeking = ref(false);
+
+const loginFailed = computed(() => props.loginFailed);
 
 // 鼠标追踪
 const onMouseMove = (e: MouseEvent) => {
@@ -158,6 +189,9 @@ const isPwdVisible = computed(() => props.passwordLength > 0 && props.showPasswo
 
 // 紫色角色
 const purpleStyle = computed(() => {
+  if (loginFailed.value) {
+    return { height: '400px', transform: 'skewX(-5deg) translateX(10px)' };
+  }
   const skew = isPwdVisible.value ? 0
     : (props.isTyping || isHidingPassword.value) ? (purplePos.value.bodySkew - 12) : purplePos.value.bodySkew;
   const tx = (props.isTyping || isHidingPassword.value) && !isPwdVisible.value ? 40 : 0;
@@ -169,6 +203,7 @@ const purpleStyle = computed(() => {
 });
 
 const purpleEyesStyle = computed(() => {
+  if (loginFailed.value) return { left: '55px', top: '40px', gap: '32px' };
   const x = isPwdVisible.value ? 20 : isLookingAtEachOther.value ? 55 : 45 + purplePos.value.faceX;
   const y = isPwdVisible.value ? 35 : isLookingAtEachOther.value ? 65 : 40 + purplePos.value.faceY;
   return { left: `${x}px`, top: `${y}px`, gap: '32px' };
@@ -183,6 +218,7 @@ const purpleForceLookY = computed(() =>
 
 // 黑色角色
 const blackStyle = computed(() => {
+  if (loginFailed.value) return { transform: 'skewX(-3deg) translateX(5px)' };
   const skew = isPwdVisible.value ? 0
     : isLookingAtEachOther.value ? (blackPos.value.bodySkew * 1.5 + 10)
     : (props.isTyping || isHidingPassword.value) ? blackPos.value.bodySkew * 1.5
@@ -192,6 +228,7 @@ const blackStyle = computed(() => {
 });
 
 const blackEyesStyle = computed(() => {
+  if (loginFailed.value) return { left: '35px', top: '30px', gap: '24px' };
   const x = isPwdVisible.value ? 10 : isLookingAtEachOther.value ? 32 : 26 + blackPos.value.faceX;
   const y = isPwdVisible.value ? 28 : isLookingAtEachOther.value ? 12 : 32 + blackPos.value.faceY;
   return { left: `${x}px`, top: `${y}px`, gap: '24px' };
@@ -205,11 +242,13 @@ const blackForceLookY = computed(() =>
 );
 
 // 橙色角色
-const orangeStyle = computed(() => ({
-  transform: isPwdVisible.value ? 'skewX(0deg)' : `skewX(${orangePos.value.bodySkew}deg)`,
-}));
+const orangeStyle = computed(() => {
+  if (loginFailed.value) return { transform: 'skewX(-4deg)' };
+  return { transform: isPwdVisible.value ? 'skewX(0deg)' : `skewX(${orangePos.value.bodySkew}deg)` };
+});
 
 const orangeEyesStyle = computed(() => {
+  if (loginFailed.value) return { left: '95px', top: '85px', gap: '32px' };
   const x = isPwdVisible.value ? 50 : 82 + orangePos.value.faceX;
   const y = isPwdVisible.value ? 85 : 90 + orangePos.value.faceY;
   return { left: `${x}px`, top: `${y}px`, gap: '32px' };
@@ -219,11 +258,13 @@ const orangeForceLookX = computed(() => isPwdVisible.value ? -5 : undefined);
 const orangeForceLookY = computed(() => isPwdVisible.value ? -4 : undefined);
 
 // 黄色角色
-const yellowStyle = computed(() => ({
-  transform: isPwdVisible.value ? 'skewX(0deg)' : `skewX(${yellowPos.value.bodySkew}deg)`,
-}));
+const yellowStyle = computed(() => {
+  if (loginFailed.value) return { transform: 'skewX(-3deg)' };
+  return { transform: isPwdVisible.value ? 'skewX(0deg)' : `skewX(${yellowPos.value.bodySkew}deg)` };
+});
 
 const yellowEyesStyle = computed(() => {
+  if (loginFailed.value) return { left: '55px', top: '38px', gap: '24px' };
   const x = isPwdVisible.value ? 20 : 52 + yellowPos.value.faceX;
   const y = isPwdVisible.value ? 35 : 40 + yellowPos.value.faceY;
   return { left: `${x}px`, top: `${y}px`, gap: '24px' };
@@ -306,5 +347,67 @@ const yellowMouthStyle = computed(() => {
   background: #2D2D2D;
   border-radius: 9999px;
   transition: all 0.2s ease-out;
+}
+
+/* 大笑状态 */
+.laughing {
+  animation: laughShake 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes laughShake {
+  from { transform: translateY(0) skewX(-3deg); }
+  to { transform: translateY(-4px) skewX(-5deg); }
+}
+
+.laugh-eye {
+  font-size: 22px;
+  font-weight: 900;
+  color: #2D2D2D;
+  line-height: 1;
+}
+
+.laugh-eye-white {
+  color: #fff;
+}
+
+.laugh-mouth {
+  position: absolute;
+  font-size: 28px;
+  color: #2D2D2D;
+  line-height: 1;
+  animation: laughMouth 0.4s ease-in-out infinite alternate;
+}
+
+@keyframes laughMouth {
+  from { transform: scale(1); }
+  to { transform: scale(1.15); }
+}
+
+.purple-mouth {
+  left: 60px;
+  top: 65px;
+  color: #fff;
+  font-size: 56px;
+}
+
+.black-mouth {
+  left: 38px;
+  top: 52px;
+  color: #fff;
+  font-size: 44px;
+}
+
+.orange-mouth {
+  left: 95px;
+  top: 110px;
+  color: #2D2D2D;
+  font-size: 44px;
+}
+
+.yellow-mouth {
+  left: 55px;
+  top: 64px;
+  color: #2D2D2D;
+  font-size: 44px;
 }
 </style>

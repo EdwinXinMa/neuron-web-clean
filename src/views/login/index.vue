@@ -10,6 +10,7 @@ const router = useRouter()
 const loading = ref(false)
 const isTyping = ref(false)
 const showPassword = ref(false)
+const loginFailed = ref(false)
 const form = reactive({
   username: '',
   password: '',
@@ -39,7 +40,8 @@ async function handleLogin() {
     message.success('登录成功，欢迎 ' + (userInfo.realname || form.username))
     router.push('/overview')
   } catch {
-    // http 拦截器已处理错误提示
+    loginFailed.value = true
+    setTimeout(() => { loginFailed.value = false }, 2500)
   } finally {
     loading.value = false
   }
@@ -55,6 +57,7 @@ async function handleLogin() {
         :isTyping="isTyping"
         :showPassword="showPassword"
         :passwordLength="form.password.length"
+        :loginFailed="loginFailed"
       />
     </div>
 
