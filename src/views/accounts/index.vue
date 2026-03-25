@@ -286,9 +286,9 @@ onMounted(() => {
 <style scoped>
 .accounts-view {
   padding: 20px 24px;
-  min-height: 100vh;
-  background: #0a1628;
-  color: #e2e8f0;
+  min-height: 100%;
+  background: #f5f7fa;
+  color: #1a1a2e;
 }
 
 /* ---- 工具栏 ---- */
@@ -305,82 +305,82 @@ onMounted(() => {
 }
 
 :deep(.search-input .ant-input) {
-  background: rgba(15, 25, 50, 0.85);
-  border-color: rgba(0, 212, 255, 0.2);
-  color: #e2e8f0;
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #1a1a2e;
 }
 :deep(.search-input .ant-input::placeholder) {
-  color: #64748b;
+  color: #94a3b8;
 }
 :deep(.search-input .ant-input-search-button) {
-  background: rgba(0, 212, 255, 0.15);
-  border-color: rgba(0, 212, 255, 0.3);
-  color: #00d4ff;
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #3b82f6;
 }
 
 .add-btn {
-  background: rgba(0, 212, 255, 0.15) !important;
-  border-color: #00d4ff !important;
-  color: #00d4ff !important;
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: #fff !important;
   flex-shrink: 0;
 }
 .add-btn:hover {
-  background: rgba(0, 212, 255, 0.3) !important;
+  background: #00bfe6 !important;
 }
 
 /* ---- 表格 ---- */
 .table-wrapper {
-  background: rgba(15, 25, 50, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.12);
+  background: #fff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
 }
 
 :deep(.ant-table) {
-  background: transparent;
-  color: #e2e8f0;
+  background: #fff;
+  color: #1a1a2e;
 }
 :deep(.ant-table-thead > tr > th) {
-  background: rgba(0, 212, 255, 0.06) !important;
-  color: #94a3b8 !important;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.12) !important;
+  background: #fafbfc !important;
+  color: #64748b !important;
+  border-bottom: 1px solid #e2e8f0 !important;
   font-weight: 500;
 }
 :deep(.ant-table-tbody > tr > td) {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.06) !important;
-  color: #e2e8f0;
+  background: #fff !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  color: #1a1a2e;
 }
 :deep(.ant-table-tbody > tr:hover > td) {
-  background: rgba(0, 212, 255, 0.05) !important;
+  background: #f5f7fa !important;
 }
 :deep(.ant-pagination) {
   padding: 12px 16px;
 }
 :deep(.ant-pagination .ant-pagination-item) {
-  background: transparent;
-  border-color: rgba(0, 212, 255, 0.15);
+  background: #fff;
+  border-color: #e2e8f0;
 }
 :deep(.ant-pagination .ant-pagination-item a) {
-  color: #94a3b8;
+  color: #64748b;
 }
 :deep(.ant-pagination .ant-pagination-item-active) {
-  border-color: #00d4ff;
+  border-color: #3b82f6;
 }
 :deep(.ant-pagination .ant-pagination-item-active a) {
-  color: #00d4ff;
+  color: #3b82f6;
 }
 :deep(.ant-pagination .ant-pagination-prev .ant-pagination-item-link),
 :deep(.ant-pagination .ant-pagination-next .ant-pagination-item-link) {
-  color: #94a3b8;
-  background: transparent;
-  border-color: rgba(0, 212, 255, 0.15);
+  color: #64748b;
+  background: #fff;
+  border-color: #e2e8f0;
 }
 :deep(.ant-pagination .ant-pagination-total-text) {
-  color: #64748b;
+  color: #94a3b8;
 }
 :deep(.ant-table-empty .ant-empty-description) {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 /* 状态 badge */
@@ -393,7 +393,7 @@ onMounted(() => {
 }
 .status-normal {
   background: rgba(0, 255, 136, 0.12);
-  color: #00ff88;
+  color: #2d9d78;
 }
 .status-disabled {
   background: rgba(148, 163, 184, 0.12);
@@ -402,57 +402,57 @@ onMounted(() => {
 
 /* 操作链接 */
 .action-link {
-  color: #00d4ff !important;
+  color: #3b82f6 !important;
   padding: 0 4px;
 }
 .disable-link {
   color: #ff4757 !important;
 }
 .enable-link {
-  color: #00ff88 !important;
+  color: #2d9d78 !important;
 }
 
-/* ---- Modal 深色主题 ---- */
+/* ---- Modal 主题 ---- */
 :deep(.dark-modal .ant-modal-content) {
-  background: #0f1932;
-  border: 1px solid rgba(0, 212, 255, 0.15);
+  background: #fff;
+  border: 1px solid #e2e8f0;
 }
 :deep(.dark-modal .ant-modal-header) {
   background: transparent;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+  border-bottom: 1px solid #e2e8f0;
 }
 :deep(.dark-modal .ant-modal-title) {
-  color: #e2e8f0;
+  color: #1a1a2e;
 }
 :deep(.dark-modal .ant-modal-close-x) {
   color: #94a3b8;
 }
 :deep(.dark-modal .ant-form-item-label > label) {
-  color: #94a3b8;
+  color: #64748b;
 }
 :deep(.dark-modal .ant-input),
 :deep(.dark-modal .ant-input-password .ant-input) {
-  background: rgba(15, 25, 50, 0.85);
-  border-color: rgba(0, 212, 255, 0.2);
-  color: #e2e8f0;
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #1a1a2e;
 }
 :deep(.dark-modal .ant-input::placeholder) {
-  color: #475569;
-}
-:deep(.dark-modal .ant-input-password .ant-input-suffix) {
-  color: #64748b;
-}
-:deep(.dark-modal .ant-modal-footer) {
-  border-top: 1px solid rgba(0, 212, 255, 0.1);
-}
-:deep(.dark-modal .ant-btn-default) {
-  background: transparent;
-  border-color: rgba(0, 212, 255, 0.2);
   color: #94a3b8;
 }
+:deep(.dark-modal .ant-input-password .ant-input-suffix) {
+  color: #94a3b8;
+}
+:deep(.dark-modal .ant-modal-footer) {
+  border-top: 1px solid #e2e8f0;
+}
+:deep(.dark-modal .ant-btn-default) {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
 :deep(.dark-modal .ant-btn-primary) {
-  background: rgba(0, 212, 255, 0.2);
-  border-color: #00d4ff;
-  color: #00d4ff;
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
 }
 </style>

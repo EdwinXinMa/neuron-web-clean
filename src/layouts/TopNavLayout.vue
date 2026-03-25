@@ -63,6 +63,37 @@ function onMenuClick({ key }: { key: string }) {
   router.push(key)
 }
 
+// 头像上传
+const avatarInputRef = ref<HTMLInputElement>()
+
+function triggerAvatarUpload() {
+  avatarInputRef.value?.click()
+}
+
+async function onAvatarSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  try {
+    // 上传到 MinIO（neuron-avatar bucket）
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('biz', 'avatar')
+    formData.append('bucket', 'neuron-avatar')
+    const uploadRes: any = await http.post('/sys/upload/uploadMinio', formData)
+    const avatarUrl = uploadRes.result || uploadRes.message || ''
+    if (!avatarUrl) { message.error('上传失败'); return }
+    // 更新头像
+    await http.put('/sys/user/updateAvatar', { avatar: avatarUrl })
+    userInfo.value.avatar = avatarUrl
+    localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    message.success('头像已更新')
+  } catch {
+    message.error('头像上传失败')
+  }
+  // 清空 input 以便重复选择同一文件
+  if (avatarInputRef.value) avatarInputRef.value.value = ''
+}
+
 function handleLogout() {
   localStorage.removeItem('token')
   localStorage.removeItem('userInfo')
@@ -107,7 +138,7 @@ async function handleChangePwd() {
   <a-layout style="min-height: 100vh">
     <header class="top-nav">
       <div class="nav-logo" @click="router.push('/overview')" style="cursor: pointer;">
-        <img src="/logo.png" alt="logo" style="height: 72px; object-fit: contain;" />
+        <img src="/logo.png" alt="logo" style="height: 56px; object-fit: contain;" />
       </div>
       <nav class="nav-items">
         <div
@@ -123,24 +154,27 @@ async function handleChangePwd() {
       </nav>
       <a-dropdown>
         <div class="nav-user">
-          <a-avatar v-if="avatar" :src="avatar" :size="30" />
-          <a-avatar v-else :size="30" class="nav-avatar">{{ username.charAt(0) }}</a-avatar>
+          <a-tooltip title="点击更换头像">
+            <a-avatar v-if="avatar" :src="avatar" :size="30" class="nav-avatar-clickable" @click.stop="triggerAvatarUpload" />
+            <a-avatar v-else :size="30" class="nav-avatar nav-avatar-clickable" @click.stop="triggerAvatarUpload">{{ username.charAt(0) }}</a-avatar>
+          </a-tooltip>
           <span class="nav-username">{{ username }}</span>
           <span style="color: #64748b; font-size: 12px;">▾</span>
         </div>
         <template #overlay>
-          <a-menu style="background: #0f1932; border: 1px solid rgba(0,212,255,0.15);">
-            <div v-if="roleLabel" style="padding: 5px 12px; font-size: 12px; color: #64748b;">{{ roleLabel }}</div>
-            <a-menu-divider v-if="roleLabel" style="border-color: rgba(0,212,255,0.1);" />
-            <a-menu-item v-if="isAdmin" @click="$router.push('/accounts')" style="color: #e2e8f0;">账号管理</a-menu-item>
-            <a-menu-item @click="openPwdModal" style="color: #e2e8f0;">修改密码</a-menu-item>
-            <a-menu-divider style="border-color: rgba(0,212,255,0.1);" />
+          <a-menu style="background: #fff; border: 1px solid #e2e8f0;">
+            <div v-if="roleLabel" style="padding: 5px 12px; font-size: 12px; color: #94a3b8;">{{ roleLabel }}</div>
+            <a-menu-divider v-if="roleLabel" style="border-color: #e2e8f0;" />
+            <a-menu-item v-if="isAdmin" @click="$router.push('/accounts')" style="color: #1a1a2e;">账号管理</a-menu-item>
+            <a-menu-item @click="openPwdModal" style="color: #1a1a2e;">修改密码</a-menu-item>
+            <a-menu-divider style="border-color: #e2e8f0;" />
             <a-menu-item @click="handleLogout" style="color: #ff4757;">退出登录</a-menu-item>
           </a-menu>
         </template>
       </a-dropdown>
+      <input ref="avatarInputRef" type="file" accept="image/*" style="display:none" @change="onAvatarSelected" />
     </header>
-    <a-layout-content style="background: #0a1628;">
+    <a-layout-content style="background: #f5f7fa; flex: 1; overflow: auto;">
       <slot />
     </a-layout-content>
   </a-layout>
@@ -172,15 +206,14 @@ async function handleChangePwd() {
 
 <style scoped>
 .top-nav {
-  height: 96px;
+  height: 64px;
   display: grid;
-  grid-template-columns: 220px 1fr 240px;
+  grid-template-columns: 220px 1fr auto;
   align-items: center;
-  padding: 0 48px;
-  background: linear-gradient(180deg, rgba(4,10,22,0.99), rgba(8,18,36,0.97));
-  border-bottom: 1px solid rgba(0, 212, 255, 0.18);
-  backdrop-filter: blur(24px);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 0 rgba(0,212,255,0.08);
+  padding: 0 16px 0 48px;
+  background: linear-gradient(180deg, #ffffff, #f0f2f5);
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -189,9 +222,8 @@ async function handleChangePwd() {
 .nav-logo {
   font-size: 24px;
   font-weight: 800;
-  color: #00d4ff;
+  color: #fff;
   letter-spacing: 1px;
-  text-shadow: 0 0 30px rgba(0, 212, 255, 0.6), 0 0 60px rgba(0, 212, 255, 0.2);
 }
 
 .nav-items {
@@ -204,27 +236,26 @@ async function handleChangePwd() {
 .nav-item {
   position: relative;
   padding: 14px 52px;
-  font-size: 17px;
+  font-size: 15px;
   color: #64748b;
   cursor: pointer;
   border-radius: 10px;
   transition: all 0.25s;
   user-select: none;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   white-space: nowrap;
 }
 
 .nav-item:hover {
-  color: #e2e8f0;
-  background: rgba(0, 212, 255, 0.08);
+  color: #1a1a2e;
+  background: rgba(59, 130, 246, 0.06);
   transform: translateY(-1px);
 }
 
 .nav-item.active {
-  color: #00d4ff;
+  color: #3b82f6;
   font-weight: 700;
-  background: rgba(0, 212, 255, 0.12);
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+  background: rgba(59, 130, 246, 0.08);
 }
 
 /* 气泡效果 */
@@ -235,9 +266,8 @@ async function handleChangePwd() {
   transform: translateX(-50%);
   width: 60%;
   height: 2px;
-  background: #00d4ff;
+  background: #3b82f6;
   border-radius: 2px;
-  box-shadow: 0 0 10px rgba(0, 212, 255, 0.8), 0 0 20px rgba(0, 212, 255, 0.4);
   animation: bubbleIn 0.25s ease;
 }
 
@@ -249,7 +279,7 @@ async function handleChangePwd() {
   transform: translateX(-50%);
   width: 8px;
   height: 8px;
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(255, 255, 255, 0.3);
   border-radius: 50%;
   filter: blur(4px);
 }
@@ -265,28 +295,37 @@ async function handleChangePwd() {
   gap: 8px;
   cursor: pointer;
   justify-content: flex-end;
-  color: #94a3b8;
+  color: #64748b;
   transition: color 0.2s;
 }
 
+.nav-avatar-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.nav-avatar-clickable:hover {
+  opacity: 0.7;
+}
+
 .nav-user:hover {
-  color: #e2e8f0;
+  color: #1a1a2e;
 }
 
 .nav-avatar {
-  background: linear-gradient(135deg, #0e7490, #00d4ff);
+  background: linear-gradient(135deg, #0e7490, #3b82f6);
   font-size: 13px;
   font-weight: 600;
 }
 
 .nav-username {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
-  color: #e2e8f0;
+  color: #1a1a2e;
 }
 
 .nav-avatar {
-  background: linear-gradient(135deg, #0e7490, #00d4ff);
+  background: linear-gradient(135deg, #0e7490, #3b82f6);
   font-size: 14px;
   font-weight: 700;
 }

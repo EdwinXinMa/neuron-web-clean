@@ -72,7 +72,9 @@ function scheduleReconnect() {
  */
 export function useDeviceEvents(callback: EventCallback) {
   listeners.add(callback)
-  ensureConnection()
+  if (localStorage.getItem('token')) {
+    ensureConnection()
+  }
 
   onBeforeUnmount(() => {
     listeners.delete(callback)

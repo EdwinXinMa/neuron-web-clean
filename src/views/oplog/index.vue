@@ -34,6 +34,7 @@
         :data-source="filteredLogs"
         :pagination="{ current: opPage, pageSize: 10, total: opTotal, showTotal: (t: number) => '共 ' + t + ' 条', onChange: onPageChange }"
         row-key="time"
+        size="middle"
         class="dark-table"
       >
         <template #bodyCell="{ column, record }">
@@ -176,8 +177,12 @@ function goDevice(sn: string) {
 <style scoped>
 .oplog-screen {
   padding: 24px;
-  min-height: 100vh;
-  background: #0a1628;
+  height: 100%;
+  overflow: hidden;
+  background: #f5f7fa;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── 筛选栏 ── */
@@ -186,12 +191,13 @@ function goDevice(sn: string) {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding: 12px 20px;
-  background: rgba(10, 18, 36, 0.9);
-  border: 1px solid rgba(0, 212, 255, 0.08);
+  background: #fff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .filter-right {
@@ -208,22 +214,21 @@ function goDevice(sn: string) {
 }
 
 .type-btn {
-  background: rgba(15, 25, 50, 0.85) !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
-  color: #94a3b8 !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
   transition: all 0.25s;
 }
 
 .type-btn.active {
-  background: rgba(0, 212, 255, 0.15) !important;
-  border-color: #00d4ff !important;
-  color: #00d4ff !important;
-  box-shadow: 0 0 12px rgba(0, 212, 255, 0.25);
+  background: rgba(0, 212, 255, 0.08) !important;
+  border-color: #3b82f6 !important;
+  color: #3b82f6 !important;
 }
 
 .type-btn:hover:not(.active) {
-  border-color: rgba(0, 212, 255, 0.4) !important;
-  color: #e2e8f0 !important;
+  border-color: #3b82f6 !important;
+  color: #1a1a2e !important;
 }
 
 .sn-search {
@@ -232,16 +237,16 @@ function goDevice(sn: string) {
 
 /* ── 表格单元格内容 ── */
 .time-text {
-  color: #64748b;
+  color: #94a3b8;
   font-size: 13px;
 }
 
 .user-text {
-  color: #e2e8f0;
+  color: #1a1a2e;
 }
 
 .sn-link {
-  color: #00d4ff;
+  color: #3b82f6;
   cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -265,23 +270,23 @@ function goDevice(sn: string) {
   flex-shrink: 0;
 }
 
-.dot-ota    { background: #00d4ff; }
+.dot-ota    { background: #3b82f6; }
 .dot-dlm    { background: #f59e0b; }
 .dot-reboot { background: #a78bfa; }
 .dot-reset  { background: #f87171; }
 .dot-default{ background: #64748b; }
 
 .type-text {
-  color: #e2e8f0;
+  color: #1a1a2e;
 }
 
 .content-text {
-  color: #64748b;
+  color: #94a3b8;
   font-size: 13px;
 }
 
 .result-success {
-  color: #4ade80;
+  color: #2d9d78;
   font-size: 13px;
 }
 
@@ -292,26 +297,28 @@ function goDevice(sn: string) {
 
 /* ── 表格容器 ── */
 .table-wrapper {
-  background: rgba(15, 25, 50, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.08);
+  background: #fff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 16px;
+  flex: 1;
+  overflow: hidden;
 }
 
-/* ── Ant Design 表格暗色覆盖 ── */
+/* ── Ant Design 表格覆盖 ── */
 :deep(.dark-table) {
   background: transparent;
 }
 
 :deep(.dark-table .ant-table) {
-  background: transparent;
-  color: #e2e8f0;
+  background: #fff;
+  color: #1a1a2e;
 }
 
 :deep(.dark-table .ant-table-thead > tr > th) {
-  background: rgba(0, 212, 255, 0.05) !important;
+  background: #fafbfc !important;
   color: #64748b !important;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.08) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
   font-weight: 500;
 }
 
@@ -320,113 +327,115 @@ function goDevice(sn: string) {
 }
 
 :deep(.dark-table .ant-table-tbody > tr > td) {
-  background: transparent !important;
-  color: #e2e8f0 !important;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.08) !important;
+  background: #fff !important;
+  color: #1a1a2e !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  padding-top: 16.5px !important;
+  padding-bottom: 16.5px !important;
 }
 
 :deep(.dark-table .ant-table-tbody > tr:hover > td) {
-  background: rgba(0, 212, 255, 0.05) !important;
+  background: #f5f7fa !important;
 }
 
 :deep(.dark-table .ant-table-cell-row-hover) {
-  background: rgba(0, 212, 255, 0.05) !important;
+  background: #f5f7fa !important;
 }
 
 /* 分页器 */
 :deep(.dark-table .ant-pagination) {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 :deep(.dark-table .ant-pagination .ant-pagination-item) {
-  background: transparent;
-  border-color: rgba(0, 212, 255, 0.2);
+  background: #fff;
+  border-color: #e2e8f0;
 }
 
 :deep(.dark-table .ant-pagination .ant-pagination-item a) {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 :deep(.dark-table .ant-pagination .ant-pagination-item-active) {
-  border-color: #00d4ff;
+  border-color: #3b82f6;
 }
 
 :deep(.dark-table .ant-pagination .ant-pagination-item-active a) {
-  color: #00d4ff;
+  color: #3b82f6;
 }
 
 :deep(.dark-table .ant-pagination .ant-pagination-prev .ant-pagination-item-link),
 :deep(.dark-table .ant-pagination .ant-pagination-next .ant-pagination-item-link) {
-  color: #94a3b8;
-  background: transparent;
-  border-color: rgba(0, 212, 255, 0.2);
+  color: #64748b;
+  background: #fff;
+  border-color: #e2e8f0;
 }
 
 :deep(.dark-table .ant-table-column-sorter) {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 :deep(.dark-table .ant-select-selector) {
-  background: transparent !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
-  color: #94a3b8 !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
 }
 
 :deep(.dark-table .ant-pagination-total-text) {
-  color: #64748b;
+  color: #94a3b8;
 }
 
 :deep(.dark-table .ant-table-empty .ant-table-placeholder) {
-  background: transparent !important;
-  color: #64748b !important;
+  background: #fff !important;
+  color: #94a3b8 !important;
 }
 
-/* ── 输入框暗色覆盖 ── */
+/* ── 输入框覆盖（移除暗色） ── */
 :deep(.dark-input-search .ant-input) {
-  background: rgba(15, 25, 50, 0.85) !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
-  color: #e2e8f0 !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  color: #1a1a2e !important;
 }
 
 :deep(.dark-input-search .ant-input::placeholder) {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 :deep(.dark-input-search .ant-input-search-button) {
-  background: rgba(15, 25, 50, 0.85) !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
-  color: #64748b !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
 }
 
 :deep(.dark-input-search .ant-input-clear-icon) {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 :deep(.dark-input-search .ant-input-affix-wrapper) {
-  background: rgba(15, 25, 50, 0.85) !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
 }
 
-/* ── 日期选择器暗色覆盖 ── */
+/* ── 日期选择器 ── */
 :deep(.dark-picker) {
-  background: rgba(15, 25, 50, 0.85) !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
+  background: #fff !important;
+  border-color: #e2e8f0 !important;
 }
 
 :deep(.dark-picker input) {
-  color: #e2e8f0 !important;
+  color: #1a1a2e !important;
 }
 
 :deep(.dark-picker .ant-picker-suffix) {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 :deep(.dark-picker .ant-picker-separator) {
-  color: #64748b !important;
+  color: #94a3b8 !important;
 }
 
 :deep(.dark-picker .ant-picker-clear) {
-  background: #0a1628 !important;
-  color: #64748b !important;
+  background: #fff !important;
+  color: #94a3b8 !important;
 }
 </style>

@@ -8,11 +8,16 @@ const http = axios.create({
   timeout: 15000,
 })
 
-// 请求拦截器：自动加 token
+// 不需要 token 的接口
+const whiteList = ['/sys/login']
+
+// 请求拦截器：自动加 token，未登录时拦截非白名单请求
 http.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) {
     config.headers['X-Access-Token'] = token
+  } else if (!whiteList.some(url => config.url?.includes(url))) {
+    return Promise.reject(new axios.Cancel('未登录'))
   }
   return config
 })
@@ -28,10 +33,15 @@ http.interceptors.response.use(
     return data
   },
   (error) => {
+    if (axios.isCancel(error)) {
+      return Promise.reject(error)
+    }
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
-      router.push('/login')
-      message.error('登录已过期，请重新登录')
+      if (router.currentRoute.value.path !== '/login') {
+        router.push('/login')
+        message.error('登录已过期，请重新登录')
+      }
     } else {
       message.error(error.message || '网络错误')
     }

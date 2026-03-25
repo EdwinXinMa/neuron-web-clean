@@ -3,17 +3,16 @@
     <!-- 数字卡片 -->
     <div class="stats-row">
       <div v-for="card in statCards" :key="card.key" class="stat-col">
-        <div class="stat-card" :style="{ '--accent': card.color }" @click="goDevices(card.key)">
-          <div class="stat-card-glow"></div>
+        <div class="stat-card" :style="{ background: card.gradient }" @click="goDevices(card.key)">
           <div class="stat-card-body">
             <div class="stat-main">
               <div>
                 <div class="stat-label">{{ card.label }}</div>
-                <div class="stat-value" :style="{ color: card.color }">
+                <div class="stat-value">
                   {{ animatedCounts[card.key] ?? 0 }}
                 </div>
               </div>
-              <component :is="card.icon" class="stat-icon" :style="{ color: card.color, fontSize: '44px', filter: `drop-shadow(0 0 10px ${card.color})` }" />
+              <component :is="card.icon" class="stat-icon" />
             </div>
           </div>
         </div>
@@ -27,7 +26,7 @@
         <!-- 地图点脉冲 SVG 滤镜 -->
         <svg width="0" height="0" style="position:absolute">
           <defs>
-            <filter id="glow-green"><feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#00ff88" /></filter>
+            <filter id="glow-green"><feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#2d9d78" /></filter>
             <filter id="glow-red"><feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ff4757" /></filter>
             <filter id="glow-gray"><feDropShadow dx="0" dy="0" stdDeviation="2" flood-color="#94a3b8" /></filter>
           </defs>
@@ -46,8 +45,7 @@
             class="alert-item"
             :class="'alert-' + alert.level"
           >
-            <div class="alert-color-bar" :style="{ background: alertColor(alert.level) }"></div>
-            <div class="alert-content">
+            <div class="alert-content" :style="{ background: alertBg(alert.level) }">
               <div class="alert-top">
                 <span class="alert-device" @click="goDevice(alert.device)">{{ alert.device }}</span>
                 <span class="alert-time">{{ formatAlertTime(alert.time) }}</span>
@@ -82,11 +80,11 @@ useDeviceEvents(() => {
 const counts = reactive({ total: 0, online: 0, offline: 0, fault: 0, unactivated: 0, alertBadge: 0 });
 
 const statCards = computed(() => [
-  { key: 'total' as const, label: '设备总数', color: '#00d4ff', icon: AppstoreOutlined },
-  { key: 'online' as const, label: '在线', color: '#00ff88', icon: CheckCircleOutlined },
-  { key: 'offline' as const, label: '离线', color: '#94a3b8', icon: DisconnectOutlined },
-  { key: 'fault' as const, label: '故障', color: '#ff4757', icon: WarningOutlined },
-  { key: 'unactivated' as const, label: '未激活', color: '#faad14', icon: ClockCircleOutlined },
+  { key: 'total' as const, label: '设备总数', gradient: 'linear-gradient(135deg, #4facfe, #00f2fe)', icon: AppstoreOutlined },
+  { key: 'online' as const, label: '在线', gradient: 'linear-gradient(135deg, #43b89c, #6fcf97)', icon: CheckCircleOutlined },
+  { key: 'offline' as const, label: '离线', gradient: 'linear-gradient(135deg, #a8b8c8, #8e9eaf)', icon: DisconnectOutlined },
+  { key: 'fault' as const, label: '故障', gradient: 'linear-gradient(135deg, #f093fb, #f5576c)', icon: WarningOutlined },
+  { key: 'unactivated' as const, label: '未激活', gradient: 'linear-gradient(135deg, #fccb90, #d57eeb)', icon: ClockCircleOutlined },
 ]);
 
 // ─── CountUp 动画 ───
@@ -114,10 +112,15 @@ function goDevice(sn: string) {
   router.push({ path: '/devices', query: { id: sn } });
 }
 
-// ─── 告警颜色 ───
-function alertColor(level: string) {
-  const m: Record<string, string> = { critical: '#ff4757', major: '#ff9f43', minor: '#00d4ff', info: '#64748b' };
-  return m[level] || '#64748b';
+// ─── 告警背景渐变 ───
+function alertBg(level: string) {
+  const m: Record<string, string> = {
+    critical: 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(239,68,68,0.04))',
+    major: 'linear-gradient(135deg, rgba(249,115,22,0.12), rgba(249,115,22,0.04))',
+    minor: 'linear-gradient(135deg, rgba(59,130,246,0.10), rgba(59,130,246,0.03))',
+    info: 'linear-gradient(135deg, rgba(100,116,139,0.10), rgba(100,116,139,0.03))',
+  };
+  return m[level] || m.info;
 }
 
 // ─── 告警时间格式化：只取时间部分，跨天显示日期 ───
@@ -137,14 +140,16 @@ const mapRef = ref<HTMLElement>();
 let map: L.Map | null = null;
 
 const statusColor: Record<string, string> = {
-  online: '#00ff88',
+  online: '#2d9d78',
   offline: '#94a3b8',
   fault: '#ff4757',
+  unactivated: '#faad14',
 };
 const statusLabel: Record<string, string> = {
   online: '在线',
   offline: '离线',
   fault: '故障',
+  unactivated: '未激活',
 };
 
 function initMap() {
@@ -152,11 +157,14 @@ function initMap() {
   map = L.map(mapRef.value, {
     center: [20, 120],
     zoom: 2,
+    minZoom: 2,
+    maxBoundsViscosity: 1.0,
+    maxBounds: [[-90, -180], [90, 180]],
     zoomControl: false,
     attributionControl: false,
   });
 
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     subdomains: 'abcd',
     maxZoom: 19,
   }).addTo(map);
@@ -261,8 +269,8 @@ onBeforeUnmount(() => {
 <style scoped>
 /* ─── 全局布局 ─── */
 .overview-screen {
-  height: calc(100vh - 96px);
-  background: #0a1628;
+  height: calc(100vh - 64px);
+  background: #f5f7fa;
   padding: 16px 20px;
   box-sizing: border-box;
   overflow: hidden;
@@ -285,29 +293,18 @@ onBeforeUnmount(() => {
 
 .stat-card {
   position: relative;
-  background: rgba(15, 25, 50, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.12);
-  border-radius: 8px;
-  padding: 20px 24px;
+  border: none;
+  border-radius: 12px;
+  padding: 28px 24px;
   cursor: pointer;
   overflow: hidden;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .stat-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 25%, transparent);
-  transform: translateY(-2px);
-}
-
-.stat-card-glow {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent), 0 0 24px color-mix(in srgb, var(--accent) 50%, transparent);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 .stat-card-body {
@@ -322,28 +319,31 @@ onBeforeUnmount(() => {
 }
 
 .stat-icon {
-  opacity: 0.7;
+  font-size: 40px !important;
+  color: rgba(255, 255, 255, 0.35);
   flex-shrink: 0;
-  transition: opacity 0.2s;
+  transition: all 0.3s;
 }
 
 .stat-card:hover .stat-icon {
-  opacity: 1;
+  color: rgba(255, 255, 255, 0.55);
+  transform: scale(1.1);
 }
 
 .stat-label {
   font-size: 13px;
-  color: #64748b;
+  color: rgba(255, 255, 255, 0.75);
   margin-bottom: 8px;
   letter-spacing: 0.5px;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 36px;
+  font-size: 34px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-  text-shadow: 0 0 16px currentColor;
+  color: #fff;
 }
 
 /* ─── 主体区域 ─── */
@@ -357,16 +357,16 @@ onBeforeUnmount(() => {
 .map-panel {
   flex: 3;
   position: relative;
-  border: 1px solid rgba(0, 212, 255, 0.12);
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   overflow: hidden;
-  background: #0d1b2a;
+  background: #fff;
 }
 
 .map-container {
   width: 100%;
   height: 100%;
-  background: #0d1b2a;
+  background: #e8ecf1;
 }
 
 /* ─── 地图点样式 ─── */
@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
   opacity: 0;
 }
 :deep(.pulse-marker-online) {
-  filter: drop-shadow(0 0 4px #00ff88);
+  filter: drop-shadow(0 0 4px #2d9d78);
 }
 :deep(.pulse-marker-offline) {
   filter: drop-shadow(0 0 2px #94a3b8);
@@ -401,32 +401,33 @@ onBeforeUnmount(() => {
 
 /* ─── 地图 Tooltip ─── */
 :deep(.dark-tooltip) {
-  background: rgba(10, 22, 40, 0.95) !important;
-  border: 1px solid rgba(0, 212, 255, 0.25) !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
   border-radius: 6px !important;
   padding: 8px 12px !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
-  color: #e2e8f0 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  color: #1a1a2e !important;
 }
 :deep(.dark-tooltip::before) {
-  border-top-color: rgba(0, 212, 255, 0.25) !important;
+  border-top-color: #e2e8f0 !important;
 }
 
-/* ─── Leaflet zoom 按钮暗色 ─── */
+/* ─── Leaflet zoom 按钮 ─── */
 :deep(.leaflet-control-zoom a) {
-  background: rgba(15, 25, 50, 0.9) !important;
-  color: #00d4ff !important;
-  border-color: rgba(0, 212, 255, 0.2) !important;
+  background: #fff !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
 }
 :deep(.leaflet-control-zoom a:hover) {
-  background: rgba(0, 212, 255, 0.15) !important;
+  background: #f5f7fa !important;
+  color: #3b82f6 !important;
 }
 
 /* ─── 告警面板 ─── */
 .alert-panel {
   flex: 1;
-  background: rgba(15, 25, 50, 0.85);
-  border: 1px solid rgba(0, 212, 255, 0.12);
+  background: #fff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -438,7 +439,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .blink-dot {
@@ -459,7 +460,7 @@ onBeforeUnmount(() => {
 .alert-title {
   font-size: 15px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #1a1a2e;
   letter-spacing: 0.5px;
 }
 
@@ -473,33 +474,25 @@ onBeforeUnmount(() => {
   width: 4px;
 }
 .alert-list::-webkit-scrollbar-thumb {
-  background: rgba(0, 212, 255, 0.2);
+  background: #d0d8e0;
   border-radius: 2px;
 }
 
 .alert-item {
-  display: flex;
-  padding: 0;
   margin: 0 12px 8px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
   overflow: hidden;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .alert-item:hover {
-  background: rgba(0, 212, 255, 0.05);
-}
-
-.alert-color-bar {
-  width: 3px;
-  flex-shrink: 0;
+  transform: translateX(2px);
 }
 
 .alert-content {
-  flex: 1;
-  padding: 10px 12px;
+  padding: 10px 14px;
   min-width: 0;
+  border-radius: 8px;
 }
 
 .alert-top {
@@ -512,7 +505,8 @@ onBeforeUnmount(() => {
 .alert-device {
   font-family: monospace;
   font-size: 12px;
-  color: #00d4ff;
+  font-weight: 600;
+  color: #4a6fa5;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
@@ -526,7 +520,7 @@ onBeforeUnmount(() => {
 
 .alert-time {
   font-size: 11px;
-  color: #475569;
+  color: #94a3b8;
   flex-shrink: 0;
   margin-left: 8px;
 }
