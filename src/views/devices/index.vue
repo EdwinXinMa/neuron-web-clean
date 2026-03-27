@@ -189,7 +189,14 @@
 
           <!-- 右列：家庭电力 -->
           <div class="detail-section">
-            <div class="section-title"><ThunderboltOutlined class="section-icon" /> 家庭电力（CT 数据）</div>
+            <div class="section-title">
+              <ThunderboltOutlined class="section-icon" /> 家庭电力（CT 数据）
+              <BarChartOutlined
+                v-if="selectedDevice.status !== 'unactivated'"
+                class="chart-icon"
+                @click="openDlmChart"
+              />
+            </div>
             <a-alert
               v-if="selectedDevice.ctMax > 0 && selectedDevice.ctCurrent / selectedDevice.ctMax >= 0.9"
               type="warning"
@@ -300,17 +307,44 @@
         确认修改为 {{ selectedDlm }}A
       </a-button>
     </a-modal>
+
+    <!-- DLM 历史图表 Modal -->
+    <a-modal
+      v-model:open="showDlmChart"
+      :footer="null"
+      :width="800"
+      class="dlm-chart-modal"
+      :destroyOnClose="true"
+    >
+      <div class="dlm-chart-header">
+        <div class="dlm-chart-title">动态负载管理（DLM）历史</div>
+      </div>
+      <div class="dlm-chart-toolbar">
+        <a-radio-group v-model:value="chartRange" size="small" @change="loadChartData">
+          <a-radio-button value="1h">1小时</a-radio-button>
+          <a-radio-button value="6h">6小时</a-radio-button>
+          <a-radio-button value="24h">24小时</a-radio-button>
+          <a-radio-button value="7d">7天</a-radio-button>
+        </a-radio-group>
+      </div>
+      <div class="dlm-chart-container">
+        <a-spin :spinning="chartLoading">
+          <div ref="chartRef" style="width: 100%; height: 360px;"></div>
+          <div v-if="chartEmpty" class="chart-empty">暂无 DLM 历史数据</div>
+        </a-spin>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch } from 'vue';
+  import { ref, computed, onMounted, watch, nextTick } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { message } from 'ant-design-vue';
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents } from '@/composables/useDeviceEvents';
-  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined } from '@ant-design/icons-vue';
+  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined } from '@ant-design/icons-vue';
 
   // 监听设备事件，自动刷新列表
   useDeviceEvents(() => {
@@ -886,6 +920,141 @@
     } catch (e: any) {
       message.error('DLM 修改失败：' + (e.message || '网络错误'));
     }
+  }
+
+  // ==================== DLM 历史图表 ====================
+  const showDlmChart = ref(false);
+  const chartRange = ref('1h');
+  const chartLoading = ref(false);
+  const chartEmpty = ref(false);
+  const chartRef = ref<HTMLElement>();
+  let chartInstance: any = null;
+
+  async function openDlmChart() {
+    if (!selectedDevice.value) {
+      return;
+    }
+    showDlmChart.value = true;
+    chartRange.value = '1h';
+    await nextTick();
+    loadChartData();
+  }
+
+  async function loadChartData() {
+    if (!selectedDevice.value || !chartRef.value) {
+      return;
+    }
+    chartLoading.value = true;
+    chartEmpty.value = false;
+    try {
+      const res = await http.get(`/device/${selectedDevice.value.sn}/dlm/history`, {
+        params: { range: chartRange.value },
+      });
+      const points = res.result?.points || [];
+      if (points.length === 0) {
+        chartEmpty.value = true;
+        if (chartInstance) {
+          chartInstance.dispose();
+          chartInstance = null;
+        }
+        return;
+      }
+      renderChart(points);
+    } catch (e: any) {
+      message.error('加载图表失败：' + (e.message || '网络错误'));
+    } finally {
+      chartLoading.value = false;
+    }
+  }
+
+  async function renderChart(points: any[]) {
+    const echarts = await import('echarts');
+    if (!chartRef.value) {
+      return;
+    }
+    if (chartInstance) {
+      chartInstance.dispose();
+    }
+    chartInstance = echarts.init(chartRef.value);
+
+    const times = points.map((p: any) => {
+      const d = new Date(p.time);
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      return chartRange.value === '7d'
+        ? `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`
+        : `${hh}:${mm}`;
+    });
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          let html = `<div style="font-weight:600;margin-bottom:4px">${params[0].axisValue}</div>`;
+          for (const p of params) {
+            html += `<div>${p.marker} ${p.seriesName}: <b>${p.value}</b> A</div>`;
+          }
+          return html;
+        },
+      },
+      legend: {
+        data: ['家庭用电', '充电用电', '断路器额定值'],
+        bottom: 0,
+        textStyle: { color: '#64748b' },
+      },
+      grid: {
+        top: 40,
+        left: 50,
+        right: 20,
+        bottom: 50,
+      },
+      xAxis: {
+        type: 'category',
+        data: times,
+        axisLabel: { color: '#94a3b8', fontSize: 11 },
+        axisLine: { lineStyle: { color: '#e2e8f0' } },
+      },
+      yAxis: {
+        type: 'value',
+        name: '电流 (A)',
+        nameTextStyle: { color: '#94a3b8' },
+        axisLabel: { color: '#94a3b8' },
+        splitLine: { lineStyle: { color: '#f1f5f9' } },
+      },
+      series: [
+        {
+          name: '家庭用电',
+          type: 'line',
+          stack: 'total',
+          areaStyle: { color: 'rgba(251, 146, 60, 0.5)' },
+          lineStyle: { color: '#f97316', width: 1.5 },
+          itemStyle: { color: '#f97316' },
+          symbol: 'none',
+          smooth: true,
+          data: points.map((p: any) => p.home_current),
+        },
+        {
+          name: '充电用电',
+          type: 'line',
+          stack: 'total',
+          areaStyle: { color: 'rgba(34, 197, 94, 0.5)' },
+          lineStyle: { color: '#22c55e', width: 1.5 },
+          itemStyle: { color: '#22c55e' },
+          symbol: 'none',
+          smooth: true,
+          data: points.map((p: any) => p.ev_current),
+        },
+        {
+          name: '断路器额定值',
+          type: 'line',
+          lineStyle: { color: '#ef4444', width: 2, type: 'dashed' },
+          itemStyle: { color: '#ef4444' },
+          symbol: 'none',
+          data: points.map((p: any) => p.breaker_rating),
+        },
+      ],
+    };
+    chartInstance.setOption(option);
   }
 
   // ==================== Init from URL ====================
@@ -1790,5 +1959,43 @@
     background: #e2e8f0 !important;
     border-color: #e2e8f0 !important;
     color: #94a3b8 !important;
+  }
+
+  /* ========== DLM Chart Icon ========== */
+  .chart-icon {
+    float: right;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 15px;
+    transition: color 0.2s;
+  }
+  .chart-icon:hover {
+    color: #3b82f6;
+  }
+
+  /* ========== DLM Chart Modal ========== */
+  .dlm-chart-header {
+    margin-bottom: 8px;
+  }
+  .dlm-chart-toolbar {
+    margin-bottom: 12px;
+    text-align: right;
+  }
+  .dlm-chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+  }
+  .dlm-chart-container {
+    position: relative;
+    min-height: 360px;
+  }
+  .chart-empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #94a3b8;
+    font-size: 14px;
   }
 </style>
