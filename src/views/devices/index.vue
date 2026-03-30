@@ -521,10 +521,10 @@
   const snGradient = computed(() => {
     const status = selectedDevice.value?.status;
     const gradients: Record<string, string> = {
-      online: 'linear-gradient(135deg, #43b89c, #6fcf97)',
-      offline: 'linear-gradient(135deg, #a8b8c8, #8e9eaf)',
-      fault: 'linear-gradient(135deg, #f093fb, #f5576c)',
-      unactivated: 'linear-gradient(135deg, #fccb90, #d57eeb)',
+      online: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
+      offline: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
+      fault: 'linear-gradient(135deg, #8b3a3a, #c96b6b)',
+      unactivated: 'linear-gradient(135deg, #4a5e78, #7c9ab8)',
     };
     return gradients[status || ''] || gradients.offline;
   });
@@ -619,22 +619,22 @@
 
   function deviceGradient(status: string): string {
     const map: Record<string, string> = {
-      online: 'linear-gradient(135deg, #43b89c, #6fcf97)',
-      offline: 'linear-gradient(135deg, #a8b8c8, #8e9eaf)',
-      fault: 'linear-gradient(135deg, #f093fb, #f5576c)',
-      unactivated: 'linear-gradient(135deg, #fccb90, #d57eeb)',
+      online: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
+      offline: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
+      fault: 'linear-gradient(135deg, #8b3a3a, #c96b6b)',
+      unactivated: 'linear-gradient(135deg, #4a5e78, #7c9ab8)',
     };
     return map[status] || map.offline;
   }
 
   function pileGradient(status: string): string {
     const map: Record<string, string> = {
-      online: 'linear-gradient(135deg, #43b89c, #6fcf97)',
-      charging: 'linear-gradient(135deg, #4facfe, #00f2fe)',
-      idle: 'linear-gradient(135deg, #43b89c, #6fcf97)',
-      offline: 'linear-gradient(135deg, #a8b8c8, #8e9eaf)',
-      fault: 'linear-gradient(135deg, #f093fb, #f5576c)',
-      unactivated: 'linear-gradient(135deg, #fccb90, #d57eeb)',
+      online: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
+      charging: 'linear-gradient(135deg, #2a4a7f, #3b82f6)',
+      idle: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
+      offline: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
+      fault: 'linear-gradient(135deg, #8b3a3a, #c96b6b)',
+      unactivated: 'linear-gradient(135deg, #4a5e78, #7c9ab8)',
     };
     return map[status] || map.offline;
   }
@@ -1227,23 +1227,23 @@
   }
 
   .status-dot.status-online {
-    background: #2d9d78;
-    box-shadow: 0 0 6px rgba(0, 255, 136, 0.5);
+    background: #2dd4bf;
+    box-shadow: 0 0 6px rgba(45, 212, 191, 0.5);
   }
 
   .status-dot.status-offline {
-    background: #64748b;
+    background: #a0aec0;
   }
 
   .status-dot.status-fault {
-    background: #ff4757;
-    box-shadow: 0 0 6px rgba(255, 71, 87, 0.5);
+    background: #c96b6b;
+    box-shadow: 0 0 6px rgba(201, 107, 107, 0.5);
     animation: pulse-fault 2s infinite;
   }
 
   .status-dot.status-unactivated {
-    background: #faad14;
-    border: 1px dashed #faad14;
+    background: #7c9ab8;
+    border: 1px dashed #7c9ab8;
   }
 
   .status-dot.status-charging {
@@ -1283,10 +1283,10 @@
     font-weight: 500;
   }
 
-  .text-online { color: #2d9d78; }
-  .text-offline { color: #64748b; }
-  .text-fault { color: #ff4757; }
-  .text-unactivated { color: #faad14; }
+  .text-online { color: #188a7e; }
+  .text-offline { color: #5a6a7a; }
+  .text-fault { color: #c96b6b; }
+  .text-unactivated { color: #7c9ab8; }
 
   .hb-time {
     color: #94a3b8;

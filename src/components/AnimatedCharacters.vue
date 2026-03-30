@@ -298,7 +298,7 @@ const yellowMouthStyle = computed(() => {
   left: 70px;
   width: 180px;
   height: 400px;
-  background: #6C3FF5;
+  background: linear-gradient(180deg, #2a4a7f, #3b82f6);
   border-radius: 10px 10px 0 0;
   z-index: 1;
 }
@@ -307,7 +307,7 @@ const yellowMouthStyle = computed(() => {
   left: 240px;
   width: 120px;
   height: 310px;
-  background: #2D2D2D;
+  background: linear-gradient(180deg, #0d6b5e, #1a8c6e);
   border-radius: 8px 8px 0 0;
   z-index: 2;
 }
@@ -316,7 +316,7 @@ const yellowMouthStyle = computed(() => {
   left: 0;
   width: 240px;
   height: 200px;
-  background: #FF9B6B;
+  background: linear-gradient(180deg, #5a6a7a, #a0aec0);
   border-radius: 120px 120px 0 0;
   z-index: 3;
 }
@@ -325,7 +325,7 @@ const yellowMouthStyle = computed(() => {
   left: 310px;
   width: 140px;
   height: 230px;
-  background: #E8D754;
+  background: linear-gradient(180deg, #8b3a3a, #c96b6b);
   border-radius: 70px 70px 0 0;
   z-index: 4;
 }

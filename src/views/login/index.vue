@@ -111,7 +111,7 @@ async function handleLogin() {
 
 .login-left {
   flex: 1;
-  background: #6b7b8d;
+  background: #8494a7;
   display: flex;
   align-items: center;
   justify-content: center;

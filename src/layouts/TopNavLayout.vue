@@ -255,10 +255,18 @@ async function handleChangePwd() {
 .nav-item.active {
   color: #3b82f6;
   font-weight: 700;
-  background: rgba(59, 130, 246, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(59, 130, 246, 0.06) 50%, rgba(59, 130, 246, 0.12) 100%);
+  box-shadow:
+    0 4px 12px rgba(59, 130, 246, 0.18),
+    0 1px 3px rgba(0, 0, 0, 0.06),
+    inset 0 3px 5px rgba(255, 255, 255, 1),
+    inset 0 -3px 6px rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.12);
+  border-top-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-1px);
 }
 
-/* 气泡效果 */
+/* 下划线 */
 .nav-bubble {
   position: absolute;
   bottom: -1px;
