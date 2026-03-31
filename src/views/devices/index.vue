@@ -177,14 +177,18 @@
               <div v-if="otaError" class="ota-error-text">{{ otaError }}</div>
               <a-button v-if="otaStatus === 'COMPLETED' || otaStatus === 'FAILED'" size="small" class="ota-close-btn" @click="closeOtaModal">关闭</a-button>
             </div>
-            <!-- <div class="info-row">
+            <div class="info-row">
+              <span class="info-label">WiFi 信号</span>
+              <span class="info-value">{{ selectedDevice.wifiRssi != null ? selectedDevice.wifiRssi + ' dBm' : '-' }}</span>
+            </div>
+            <div class="info-row">
               <span class="info-label">硬件版本</span>
               <span class="info-value">{{ selectedDevice.hardwareVersion || '-' }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">IP 地址</span>
-              <span class="info-value">{{ selectedDevice.ipAddress || '-' }}</span>
-            </div> -->
+              <span class="info-label">MAC 地址</span>
+              <span class="info-value" style="font-family: monospace;">{{ selectedDevice.macAddress || '-' }}</span>
+            </div>
           </div>
 
           <!-- 右列：家庭电力 -->
@@ -197,6 +201,19 @@
                 @click="openDlmChart"
               />
             </div>
+            <!-- 电流进度条 -->
+            <div v-if="selectedDevice.ctCurrent > 0" class="current-bar-wrapper">
+              <div class="current-bar-header">
+                <span class="current-bar-label">电流负载</span>
+                <span class="current-bar-value">{{ selectedDevice.ctCurrent }} / {{ selectedDevice.ctMax }} A</span>
+              </div>
+              <div class="current-bar-bg">
+                <div
+                  class="current-bar-fill"
+                  :style="{ width: Math.min(selectedDevice.ctCurrent / selectedDevice.ctMax * 100, 100) + '%', background: currentBarColor }"
+                ></div>
+              </div>
+            </div>
             <a-alert
               v-if="selectedDevice.ctMax > 0 && selectedDevice.ctCurrent / selectedDevice.ctMax >= 0.9"
               type="warning"
@@ -205,11 +222,19 @@
               class="current-warning"
             />
             <div class="info-row">
-              <span class="info-label">入户总电流</span>
+              <span class="info-label">总电流</span>
               <span class="info-value highlight">{{ selectedDevice.ctCurrent > 0 ? selectedDevice.ctCurrent + ' A' : '-' }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">最大电流阈值</span>
+              <span class="info-label">充电电流</span>
+              <span class="info-value" style="color: #16a34a; font-weight: 600;">{{ selectedDevice.totalChargingCurrent > 0 ? selectedDevice.totalChargingCurrent + ' A' : '-' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">家用电流</span>
+              <span class="info-value">{{ selectedDevice.loadCurrent > 0 ? selectedDevice.loadCurrent + ' A' : '-' }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">电流阈值</span>
               <span class="info-value">
                 {{ selectedDevice.ctMax }} A
                 <a-button v-if="selectedDevice.status !== 'unactivated'" type="link" size="small" class="action-btn" @click="openDlmModal">修改</a-button>
@@ -219,26 +244,67 @@
               <span class="info-label">电压</span>
               <span class="info-value">{{ selectedDevice.voltage > 0 ? selectedDevice.voltage + ' V' : '-' }}</span>
             </div>
+            <div class="info-row">
+              <span class="info-label">总功率</span>
+              <span class="info-value">{{ selectedDevice.totalPower > 0 ? selectedDevice.totalPower + ' W' : '-' }}</span>
+            </div>
           </div>
 
           <!-- 下挂充电桩（跨两列） -->
           <div class="detail-section full">
             <div class="section-title"><CarOutlined class="section-icon" /> 下挂充电桩</div>
             <div v-if="selectedDevice.chargers.length === 0" class="no-chargers">暂无下挂充电桩</div>
-            <div v-for="pile in selectedDevice.chargers" :key="pile.sn" class="pile-block">
-              <!-- 桩行 -->
-              <div class="pile-row">
-                <span class="pile-sn-badge" :style="{ background: pileGradient(pile.status) }">{{ pile.sn }}</span>
-                <span class="pile-model">{{ pile.model }}</span>
-                <a-tag :color="chargerTagColor(pile.status)" class="charger-tag">{{ chargerStatusLabel(pile.status) }}</a-tag>
+            <div v-for="pile in selectedDevice.chargers" :key="pile.sn"
+              :class="['pile-card', {
+                'pile-card-charging': pile.hasDlmData ? pile.chargeEVStatus === 'Charging' : false,
+                'pile-card-offline': pile.hasDlmData ? pile.connectStatus === 'offline' : pile.status === 'offline'
+              }]"
+            >
+              <!-- 桩头部 -->
+              <div class="pile-card-header">
+                <div class="pile-card-left">
+                  <span class="pile-sn-badge" :style="{ background: pileGradient(pile.hasDlmData
+                    ? (pile.connectStatus === 'offline' ? 'offline' : (pile.chargeEVStatus === 'Charging' ? 'charging' : 'idle'))
+                    : pile.status) }">{{ pile.sn }}</span>
+                  <span v-if="pile.chargeVersion" class="pile-version">固件 {{ pile.chargeVersion }}</span>
+                  <!-- 有 DLMStatus 数据：用 connectStatus + charge_EVStatus -->
+                  <template v-if="pile.hasDlmData">
+                    <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? '在线' : '离线' }}</a-tag>
+                    <a-tag v-if="pile.chargeEVStatus && pile.connectStatus !== 'offline'" :color="chargerTagColor(pile.chargeEVStatus === 'Charging' ? 'charging' : 'idle')" size="small">{{ evStatusLabel(pile.chargeEVStatus) }}</a-tag>
+                  </template>
+                  <!-- 没有 DLMStatus 数据：fallback 到 nc_device.online_status -->
+                  <template v-else>
+                    <a-tag :color="chargerTagColor(pile.status)" size="small">{{ chargerStatusLabel(pile.status) }}</a-tag>
+                    <span class="pile-model">{{ pile.model }}</span>
+                  </template>
+                </div>
+                <div class="pile-card-right">
+                  <span v-if="pile.allocatedCurrent != null" class="pile-current">{{ pile.allocatedCurrent }} A</span>
+                  <a-tooltip v-if="pile.snr != null">
+                    <template #title>
+                      <div>PLC 信噪比: {{ pile.snr }}</div>
+                      <div>衰减: {{ pile.atten }}</div>
+                    </template>
+                    <span class="pile-signal">📶</span>
+                  </a-tooltip>
+                </div>
               </div>
-              <!-- 枪行（缩进） -->
-              <div v-for="(conn, cidx) in pile.connectors" :key="conn.id" class="connector-row">
-                <span class="conn-indent">└</span>
-                <span :class="['status-dot', `status-${conn.status}`]"></span>
-                <span class="conn-label">枪 {{ cidx + 1 }}</span>
-                <a-tag :color="chargerTagColor(conn.status)" class="charger-tag" size="small">{{ chargerStatusLabel(conn.status) }}</a-tag>
-                <span class="conn-current">{{ conn.current > 0 ? conn.current + ' A' : '-' }}</span>
+              <!-- 充电信息（仅 DLMStatus 有数据且充电中显示） -->
+              <div v-if="pile.hasDlmData && pile.chargeEVStatus === 'Charging' && pile.connectStatus !== 'offline'" class="pile-charge-info">
+                <span v-if="pile.energy">电量 <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
+                <span v-if="pile.chargeMethod != null">模式 <strong>{{ pile.chargeMethod === 1 ? 'N3Lite' : 'iCharger' }}</strong></span>
+              </div>
+              <!-- 枪列表（桩离线时不显示） -->
+              <div v-if="!(pile.hasDlmData && pile.connectStatus === 'offline')" class="pile-connectors">
+                <div v-for="(conn, cidx) in pile.connectors" :key="conn.id" class="connector-row">
+                  <span class="conn-indent">└</span>
+                  <span :class="['status-dot', `status-${conn.status}`]"></span>
+                  <span class="conn-label">枪 {{ conn.id }}</span>
+                  <a-tag :color="chargerTagColor(conn.status)" class="charger-tag" size="small">
+                    {{ chargerStatusLabel(conn.status) }}
+                  </a-tag>
+                  <span v-if="conn.duration > 0" class="conn-duration">{{ formatDuration(conn.duration) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -255,6 +321,35 @@
                   <span class="alert-msg">{{ alert.msg }}</span>
                   <span class="alert-time">{{ alert.time }}</span>
                 </div>
+              </a-tab-pane>
+              <a-tab-pane key="charging" tab="充电记录">
+                <div v-if="chargingSessions.length === 0" class="no-data">暂无充电记录</div>
+                <a-table
+                  v-else
+                  :dataSource="chargingSessions"
+                  :columns="chargingColumns"
+                  :pagination="{ pageSize: 5, size: 'small', showTotal: (t: number) => `共 ${t} 条` }"
+                  size="small"
+                  :rowKey="(r: any) => r.id"
+                >
+                  <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'connector'">
+                      {{ record.pileSn }} / 枪{{ record.connectorId }}
+                    </template>
+                    <template v-if="column.key === 'duration'">
+                      {{ record.durationText }}
+                    </template>
+                    <template v-if="column.key === 'energy'">
+                      {{ record.energyText }}
+                    </template>
+                    <template v-if="column.key === 'method'">
+                      {{ record.chargingMethod === 1 ? 'N3Lite' : record.chargingMethod === 0 ? 'iCharger' : '-' }}
+                    </template>
+                    <template v-if="column.key === 'status'">
+                      <a-tag :color="record.status === 'CHARGING' ? '#16a34a' : '#64748b'" size="small">{{ record.status === 'CHARGING' ? '充电中' : '已完成' }}</a-tag>
+                    </template>
+                  </template>
+                </a-table>
               </a-tab-pane>
               <a-tab-pane key="logs" tab="最近操作">
                 <div v-if="deviceLogs.length === 0" class="no-data">暂无操作记录</div>
@@ -329,8 +424,18 @@
       </div>
       <div class="dlm-chart-container">
         <a-spin :spinning="chartLoading">
-          <div ref="chartRef" style="width: 100%; height: 360px;"></div>
+          <div ref="chartRef" style="width: 100%; height: 320px;"></div>
           <div v-if="chartEmpty" class="chart-empty">暂无 DLM 历史数据</div>
+          <div v-if="!chartEmpty" class="mini-charts-row">
+            <div class="mini-chart-box">
+              <div class="mini-chart-label">功率 (W)</div>
+              <div ref="powerChartRef" style="width: 100%; height: 120px;"></div>
+            </div>
+            <div class="mini-chart-box">
+              <div class="mini-chart-label">电压 (V)</div>
+              <div ref="voltageChartRef" style="width: 100%; height: 120px;"></div>
+            </div>
+          </div>
         </a-spin>
       </div>
     </a-modal>
@@ -464,11 +569,13 @@
   async function loadDetail(sn: string) {
     detailLoading.value = true;
     deviceLogsData.value = [];
+    chargingSessionsData.value = [];
     try {
-      // 并行拉详情和日志
-      const [detailRes, logRes]: any[] = await Promise.all([
+      // 并行拉详情、日志、充电记录
+      const [detailRes, logRes, chargeRes]: any[] = await Promise.all([
         getDeviceDetail(sn),
         http.get('/oplog/list', { params: { deviceSn: sn, pageSize: 20 } }),
+        http.get(`/device/${sn}/charging-sessions`, { params: { pageSize: 10 } }),
       ]);
       deviceDetail.value = detailRes.result || detailRes;
       const logData = logRes.result || logRes;
@@ -479,6 +586,8 @@
         content: l.opContent || '-',
         result: l.opResult === 'SUCCESS' ? 'success' : 'fail',
       }));
+      const chargeData = chargeRes.result || chargeRes;
+      chargingSessionsData.value = chargeData.records || [];
     } catch (e: any) {
       message.error('加载设备详情失败');
     } finally {
@@ -539,7 +648,7 @@
       status: (d.onlineStatus || 'UNACTIVATED').toLowerCase(),
       lastHb: d.lastHeartbeat ? formatHb(d.lastHeartbeat) : '-',
       fw: d.firmwareVersion || '-',
-      // 台账字段透传（后端原字段名直接用）
+      // 台账字段透传
       dealer: d.dealer,
       deviceType: d.deviceType,
       deviceModel: d.deviceModel,
@@ -549,18 +658,39 @@
       productionDate: d.productionDate,
       shipDate: d.shipDate,
       ipAddress: d.ipAddress,
+      // CT 数据
       ctCurrent: ct.totalCurrent ?? 0,
       ctMax: ct.breakerRating ?? d.breakerRating ?? 32,
       voltage: ct.voltage ?? 0,
+      totalPower: ct.totalPower ?? 0,
+      loadCurrent: ct.loadCurrent ?? 0,
+      totalChargingCurrent: ct.totalChargingCurrent ?? 0,
+      wifiRssi: ct.wifiRssi ?? null,
       dataFresh: ct.dataFresh !== false,
+      // 下挂充电桩（合并 DLMStatus 数据）
       chargers: (deviceDetail.value?.chargers || []).map((pile: any) => ({
         sn: pile.sn,
         model: pile.model || pile.deviceModel || '-',
         status: pile.onlineStatus ? pile.onlineStatus.toLowerCase() : 'offline',
+        // DLMStatus 桩级别数据
+        allocatedCurrent: pile.allocatedCurrent ?? null,
+        connectStatus: pile.connectStatus ?? null,
+        chargeEVStatus: pile.charge_EVStatus ?? null,
+        energy: pile.energy ?? null,
+        chargeMethod: pile.charge_Method ?? null,
+        chargeVersion: pile.charge_version ?? null,
+        snr: pile.snr ?? null,
+        atten: pile.atten ?? null,
+        hasDlmData: pile.connectStatus != null,
+        // 枪列表（合并 DLMStatus 枪级别数据）
         connectors: (pile.connectors || []).map((conn: any) => ({
           id: conn.connectorId,
-          status: conn.status === 'Charging' ? 'charging' : conn.status === 'Faulted' ? 'fault' : 'idle',
+          status: conn.status === 'Charging' ? 'charging' : conn.status === 'Faulted' ? 'fault' : conn.status === 'Unavailable' ? 'offline' : 'idle',
           current: conn.currentPower ?? 0,
+          dlmStatus: conn.dlmStatus ?? null,
+          startTime: conn.startTime ?? null,
+          endTime: conn.endTime ?? null,
+          duration: conn.duration ?? 0,
         })),
       })),
     };
@@ -576,6 +706,22 @@
   });
   const deviceLogsData = ref<any[]>([]);
   const deviceLogs = computed(() => deviceLogsData.value.slice(0, 3));
+
+  const chargingColumns = [
+    { title: '桩 / 枪', key: 'connector', width: 160 },
+    { title: '开始时间', dataIndex: 'startTime', width: 150 },
+    { title: '时长', key: 'duration', width: 80 },
+    { title: '电量', key: 'energy', width: 100 },
+    { title: '模式', key: 'method', width: 80 },
+    { title: '状态', key: 'status', width: 80 },
+  ];
+
+  const chargingSessionsData = ref<any[]>([]);
+  const chargingSessions = computed(() => chargingSessionsData.value.map((s: any) => ({
+    ...s,
+    durationText: s.duration ? formatDuration(s.duration) : '-',
+    energyText: s.energy ? (s.energy / 1000).toFixed(2) + ' kWh' : '-',
+  })));
 
   // ==================== Methods ====================
   function formatHb(hb: string | null): string {
@@ -638,6 +784,29 @@
     };
     return map[status] || map.offline;
   }
+
+  function evStatusLabel(status: string): string {
+    const map: Record<string, string> = {
+      Charging: '充电中', Idle: '空闲', Ready: '就绪', Faulted: '故障', Finished: '已完成',
+    };
+    return map[status] || status;
+  }
+
+  function formatDuration(seconds: number): string {
+    if (!seconds || seconds <= 0) return '';
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m`;
+  }
+
+  const currentBarColor = computed(() => {
+    if (!selectedDevice.value) return '#16a34a';
+    const ratio = selectedDevice.value.ctCurrent / selectedDevice.value.ctMax;
+    if (ratio >= 0.9) return '#dc2626';
+    if (ratio >= 0.7) return '#d97706';
+    return '#16a34a';
+  });
 
   function chargerTagColor(status: string): string {
     const map: Record<string, string> = {
@@ -928,7 +1097,11 @@
   const chartLoading = ref(false);
   const chartEmpty = ref(false);
   const chartRef = ref<HTMLElement>();
+  const powerChartRef = ref<HTMLElement>();
+  const voltageChartRef = ref<HTMLElement>();
   let chartInstance: any = null;
+  let powerChartInstance: any = null;
+  let voltageChartInstance: any = null;
 
   async function openDlmChart() {
     if (!selectedDevice.value) {
@@ -1031,7 +1204,7 @@
           itemStyle: { color: '#f97316' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => p.home_current),
+          data: points.map((p: any) => p.load_current),
         },
         {
           name: '充电用电',
@@ -1042,7 +1215,7 @@
           itemStyle: { color: '#22c55e' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => p.ev_current),
+          data: points.map((p: any) => p.total_charging_current),
         },
         {
           name: '断路器额定值',
@@ -1055,6 +1228,41 @@
       ],
     };
     chartInstance.setOption(option);
+
+    // 迷你图：功率
+    await nextTick();
+    if (powerChartRef.value) {
+      if (powerChartInstance) powerChartInstance.dispose();
+      powerChartInstance = echarts.init(powerChartRef.value);
+      powerChartInstance.setOption({
+        grid: { top: 10, left: 45, right: 15, bottom: 24 },
+        xAxis: { type: 'category', data: times, show: false },
+        yAxis: { type: 'value', axisLabel: { color: '#94a3b8', fontSize: 10 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+        tooltip: { trigger: 'axis', formatter: (p: any) => p[0] ? `${p[0].axisValue}<br/>${p[0].value} W` : '' },
+        series: [{
+          type: 'line', data: points.map((p: any) => p.total_power),
+          lineStyle: { color: '#8b5cf6', width: 1.5 }, itemStyle: { color: '#8b5cf6' },
+          areaStyle: { color: 'rgba(139, 92, 246, 0.15)' }, symbol: 'none', smooth: true,
+        }],
+      });
+    }
+
+    // 迷你图：电压
+    if (voltageChartRef.value) {
+      if (voltageChartInstance) voltageChartInstance.dispose();
+      voltageChartInstance = echarts.init(voltageChartRef.value);
+      voltageChartInstance.setOption({
+        grid: { top: 10, left: 45, right: 15, bottom: 24 },
+        xAxis: { type: 'category', data: times, show: false },
+        yAxis: { type: 'value', min: 'dataMin', axisLabel: { color: '#94a3b8', fontSize: 10 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+        tooltip: { trigger: 'axis', formatter: (p: any) => p[0] ? `${p[0].axisValue}<br/>${p[0].value} V` : '' },
+        series: [{
+          type: 'line', data: points.map((p: any) => p.voltage),
+          lineStyle: { color: '#0ea5e9', width: 1.5 }, itemStyle: { color: '#0ea5e9' },
+          areaStyle: { color: 'rgba(14, 165, 233, 0.15)' }, symbol: 'none', smooth: true,
+        }],
+      });
+    }
   }
 
   // ==================== Init from URL ====================
@@ -1658,28 +1866,72 @@
     padding: 12px;
   }
 
-  .pile-block {
-    border-bottom: 1px solid rgba(0, 212, 255, 0.06);
-    padding: 8px 0;
+  /* ========== 充电桩卡片 ========== */
+  .pile-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: all 0.2s;
   }
 
-  .pile-block:last-child {
-    border-bottom: none;
+  .pile-card-charging {
+    border-color: #86efac;
+    background: #f0fdf4;
   }
 
-  .pile-row {
+  .pile-card-offline {
+    opacity: 0.5;
+  }
+
+  .pile-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+  }
+
+  .pile-card-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pile-card-right {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 4px 0;
   }
 
-  .pile-sn {
-    font-family: 'Courier New', monospace;
+  .pile-current {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a3a5c;
+  }
+
+  .pile-signal {
+    font-size: 16px;
+    cursor: help;
+  }
+
+  .pile-charge-info {
+    padding: 4px 16px 8px;
     font-size: 13px;
-    font-weight: 600;
-    color: #1a1a2e;
-    flex: 1;
+    color: #475569;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .pile-firmware {
+    padding: 2px 16px 8px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .pile-connectors {
+    border-top: 1px solid #f1f5f9;
+    padding: 4px 16px 8px;
   }
 
   .pile-sn-badge {
@@ -1697,15 +1949,21 @@
     color: #64748b;
   }
 
+  .pile-version {
+    font-size: 11px;
+    color: #94a3b8;
+    font-family: monospace;
+  }
+
   .connector-row {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 3px 0 3px 12px;
+    padding: 3px 0;
   }
 
   .conn-indent {
-    color: #334155;
+    color: #94a3b8;
     font-size: 12px;
   }
 
@@ -1715,7 +1973,7 @@
     width: 36px;
   }
 
-  .conn-current {
+  .conn-duration {
     margin-left: auto;
     font-size: 12px;
     color: #64748b;
@@ -1723,6 +1981,40 @@
 
   .charger-tag {
     font-size: 11px;
+  }
+
+  /* ========== 电流进度条 ========== */
+  .current-bar-wrapper {
+    margin-bottom: 8px;
+  }
+
+  .current-bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .current-bar-label {
+    color: #64748b;
+  }
+
+  .current-bar-value {
+    font-weight: 600;
+    color: #1a3a5c;
+  }
+
+  .current-bar-bg {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .current-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease, background 0.5s ease;
   }
 
   /* ========== Alerts & Logs ========== */
@@ -1746,6 +2038,26 @@
 
   .dark-tabs :deep(.ant-tabs-content-holder) {
     padding: 12px 20px 16px;
+  }
+
+  /* 充电记录表格：字小、灰色 */
+  .dark-tabs :deep(.ant-table) {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .dark-tabs :deep(.ant-table-thead > tr > th) {
+    font-size: 12px;
+    color: #94a3b8;
+    background: #f8fafc;
+    padding: 8px 12px;
+    font-weight: 500;
+  }
+  .dark-tabs :deep(.ant-table-tbody > tr > td) {
+    padding: 6px 12px;
+    color: #64748b;
+  }
+  .dark-tabs :deep(.ant-table-pagination) {
+    margin: 8px 0 0;
   }
 
   .no-data {
@@ -1997,5 +2309,27 @@
     transform: translate(-50%, -50%);
     color: #94a3b8;
     font-size: 14px;
+  }
+
+  .mini-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 8px;
+  }
+
+  .mini-chart-box {
+    background: #fafbfc;
+    border-radius: 6px;
+    padding: 8px;
+  }
+
+  .mini-chart-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-bottom: 4px;
   }
 </style>

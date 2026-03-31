@@ -26,7 +26,7 @@
         :data-source="filteredAlerts"
         :pagination="{
         current: alertPage,
-        pageSize: 10,
+        pageSize: alertPageSize,
         total: alertTotal,
         showTotal: (t: number) => `共 ${t} 条`,
         onChange: onPageChange
@@ -96,12 +96,13 @@ const columns = [
 const alertList = ref<any[]>([])
 const alertTotal = ref(0)
 const alertPage = ref(1)
+const alertPageSize = 10
 const alertLoading = ref(false)
 
 async function loadAlerts() {
   alertLoading.value = true
   try {
-    const params: any = { pageNo: alertPage.value, pageSize: 10 }
+    const params: any = { pageNo: alertPage.value, pageSize: alertPageSize }
     // 级别映射：前端 critical/major/minor/info → 后端 CRITICAL/IMPORTANT/NORMAL/INFO
     const levelMap: Record<string, string> = { critical: 'CRITICAL', major: 'IMPORTANT', minor: 'NORMAL', info: 'INFO' }
     if (activeLevel.value !== 'all') params.alertLevel = levelMap[activeLevel.value] || activeLevel.value
@@ -145,12 +146,12 @@ function goDevice(sn: string) {
 <style scoped>
 .alerts-screen {
   padding: 24px;
-  height: 100%;
-  overflow: hidden;
+  height: calc(100vh - 64px);
   background: #f5f7fa;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 /* ── 筛选栏 ── */
@@ -270,8 +271,8 @@ function goDevice(sn: string) {
   background: #fff !important;
   color: #1a1a2e !important;
   border-bottom: 1px solid #f0f0f0 !important;
-  padding-top: 16.5px !important;
-  padding-bottom: 16.5px !important;
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
 }
 
 :deep(.dark-table .ant-table-tbody > tr:hover > td) {

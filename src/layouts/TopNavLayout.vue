@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, reactive, onMounted } from 'vue'
+import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -30,6 +30,13 @@ onMounted(() => {
 useDeviceEvents((event) => {
   if (event.type === 'ALERT') {
     loadAlertBadge()
+  }
+})
+
+// 进入告警页时清除角标
+watch(() => route.path, (path) => {
+  if (path === '/alerts') {
+    alertCount.value = 0
   }
 })
 
