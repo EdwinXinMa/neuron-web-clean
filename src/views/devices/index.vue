@@ -1141,7 +1141,7 @@
   }
 
   async function renderChart(points: any[]) {
-    const echarts = await import('echarts');
+    const echarts = (await import('@/utils/echarts')).default;
     if (!chartRef.value) {
       return;
     }

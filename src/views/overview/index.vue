@@ -196,7 +196,7 @@ async function renderPie() {
   if (!pieRef.value) {
     return;
   }
-  const echarts = await import('echarts');
+  const echarts = (await import('@/utils/echarts')).default;
   if (pieInstance) {
     pieInstance.dispose();
   }
