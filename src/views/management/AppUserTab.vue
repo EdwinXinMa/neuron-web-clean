@@ -54,7 +54,7 @@
         row-key="deviceSn"
         size="small"
         :pagination="false"
-        :locale="{ emptyText: '暂无绑定设备' }"
+        :show-header="bindList.length > 0"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'deviceSn'">
@@ -68,6 +68,12 @@
           <template v-else-if="column.dataIndex === 'bindTime'">
             {{ record.bindTime ? record.bindTime.slice(0, 16).replace('T', ' ') : '-' }}
           </template>
+        </template>
+        <template #emptyText>
+          <div class="bind-empty">
+            <div class="bind-empty-icon">📋</div>
+            <div>暂无绑定设备</div>
+          </div>
         </template>
       </a-table>
     </a-modal>
@@ -243,8 +249,13 @@ onMounted(() => {
 .bind-empty {
   text-align: center;
   color: #94a3b8;
-  padding: 24px 0;
+  padding: 32px 0;
   font-size: 13px;
+}
+.bind-empty-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.5;
 }
 :deep(.dark-modal .ant-modal-content) {
   background: #fff;
