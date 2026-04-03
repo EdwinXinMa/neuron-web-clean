@@ -3,9 +3,11 @@
     <a-tabs v-model:activeKey="activeTab" class="management-tabs">
       <a-tab-pane key="ledger" tab="设备台账" />
       <a-tab-pane key="firmware" tab="固件库" />
+      <a-tab-pane key="appUser" tab="App 用户" />
     </a-tabs>
 
     <FirmwareTab v-if="activeTab === 'firmware'" />
+    <AppUserTab v-if="activeTab === 'appUser'" />
 
     <template v-if="activeTab === 'ledger'">
     <!-- 顶部栏：搜索 + 操作按钮一行 -->
@@ -101,6 +103,7 @@ import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import http from '@/api/http'
 import FirmwareTab from './FirmwareTab.vue'
+import AppUserTab from './AppUserTab.vue'
 import { getDeviceList } from '@/api/device'
 
 const router = useRouter()

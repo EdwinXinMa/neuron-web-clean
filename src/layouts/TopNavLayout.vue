@@ -54,7 +54,7 @@ const navItems = [
   { path: '/devices', label: '设备' },
   { path: '/alerts', label: '告警', badgeKey: 'alert' },
   { path: '/oplog', label: '操作日志' },
-  { path: '/management', label: '设备管理' },
+  { path: '/management', label: '管理中心' },
 ]
 const avatar = computed(() => userInfo.value.avatar || '')
 const isAdmin = computed(() => userInfo.value.role === 'admin' || userInfo.value.role === 1)
