@@ -54,6 +54,7 @@
         row-key="deviceSn"
         size="small"
         :pagination="false"
+        :locale="{ emptyText: '暂无绑定设备' }"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'deviceSn'">
@@ -69,7 +70,6 @@
           </template>
         </template>
       </a-table>
-      <div v-if="!bindLoading && bindList.length === 0" class="bind-empty">暂无绑定设备</div>
     </a-modal>
   </div>
 </template>
