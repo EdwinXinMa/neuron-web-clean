@@ -202,28 +202,34 @@
               />
             </div>
             <!-- 电流进度条 -->
-            <div v-if="selectedDevice.ctCurrent > 0" class="current-bar-wrapper">
+            <div v-if="ctCurrentTotal > 0" class="current-bar-wrapper">
               <div class="current-bar-header">
                 <span class="current-bar-label">电流负载</span>
-                <span class="current-bar-value">{{ selectedDevice.ctCurrent }} / {{ selectedDevice.ctMax }} A</span>
+                <span class="current-bar-value">{{ ctCurrentTotal }} / {{ selectedDevice.ctMax }} A</span>
               </div>
               <div class="current-bar-bg">
                 <div
                   class="current-bar-fill"
-                  :style="{ width: Math.min(selectedDevice.ctCurrent / selectedDevice.ctMax * 100, 100) + '%', background: currentBarColor }"
+                  :style="{ width: Math.min(ctCurrentTotal / selectedDevice.ctMax * 100, 100) + '%', background: currentBarColor }"
                 ></div>
               </div>
             </div>
             <a-alert
-              v-if="selectedDevice.ctMax > 0 && selectedDevice.ctCurrent / selectedDevice.ctMax >= 0.9"
+              v-if="selectedDevice.ctMax > 0 && ctCurrentTotal / selectedDevice.ctMax >= 0.9"
               type="warning"
               show-icon
-              :message="`电流 ${selectedDevice.ctCurrent}A 已达阈值 ${selectedDevice.ctMax}A 的 ${Math.round(selectedDevice.ctCurrent / selectedDevice.ctMax * 100)}%`"
+              :message="`电流 ${ctCurrentTotal}A 已达阈值 ${selectedDevice.ctMax}A 的 ${Math.round(ctCurrentTotal / selectedDevice.ctMax * 100)}%`"
               class="current-warning"
             />
             <div class="info-row">
               <span class="info-label">总电流</span>
-              <span class="info-value highlight">{{ selectedDevice.ctCurrent > 0 ? selectedDevice.ctCurrent + ' A' : '-' }}</span>
+              <span class="info-value highlight">
+                <template v-if="ctCurrentTotal > 0">
+                  {{ ctCurrentTotal }} A
+                  <span v-if="selectedDevice.ctCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.ctCurrentA }} B:{{ selectedDevice.ctCurrentB }} C:{{ selectedDevice.ctCurrentC }})</span>
+                </template>
+                <template v-else>-</template>
+              </span>
             </div>
             <div class="info-row">
               <span class="info-label">充电电流</span>
@@ -659,7 +665,9 @@
       shipDate: d.shipDate,
       ipAddress: d.ipAddress,
       // CT 数据
-      ctCurrent: ct.totalCurrent ?? 0,
+      ctCurrentA: ct.totalCurrentA ?? 0,
+      ctCurrentB: ct.totalCurrentB ?? 0,
+      ctCurrentC: ct.totalCurrentC ?? 0,
       ctMax: ct.breakerRating ?? d.breakerRating ?? 32,
       voltage: ct.voltage ?? 0,
       totalPower: ct.totalPower ?? 0,
@@ -787,7 +795,7 @@
 
   function evStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      Charging: '充电中', Idle: '空闲', Ready: '就绪', Faulted: '故障', Finished: '已完成',
+      Available: '空闲', Preparing: '就绪', Charging: '充电中', SuspendedEVSE: '暂停(桩)', SuspendedEV: '暂停(车)', Finishing: '已完成', Faulted: '故障', Unavailable: '不可用',
     };
     return map[status] || status;
   }
@@ -800,9 +808,15 @@
     return `${m}m`;
   }
 
+  /** 三相电流合计（用于进度条和告警判断） */
+  const ctCurrentTotal = computed(() => {
+    if (!selectedDevice.value) return 0;
+    return +(selectedDevice.value.ctCurrentA + selectedDevice.value.ctCurrentB + selectedDevice.value.ctCurrentC).toFixed(1);
+  });
+
   const currentBarColor = computed(() => {
     if (!selectedDevice.value) return '#16a34a';
-    const ratio = selectedDevice.value.ctCurrent / selectedDevice.value.ctMax;
+    const ratio = ctCurrentTotal.value / selectedDevice.value.ctMax;
     if (ratio >= 0.9) return '#dc2626';
     if (ratio >= 0.7) return '#d97706';
     return '#16a34a';
