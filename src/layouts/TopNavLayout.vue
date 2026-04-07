@@ -5,6 +5,7 @@ import { UserOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import http from '@/api/http'
 import { useDeviceEvents } from '@/composables/useDeviceEvents'
+import { toFileUrl } from '@/utils/file'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,7 +57,7 @@ const navItems = [
   { path: '/oplog', label: '操作日志' },
   { path: '/management', label: '管理中心' },
 ]
-const avatar = computed(() => userInfo.value.avatar || '')
+const avatar = computed(() => toFileUrl(userInfo.value.avatar))
 const isAdmin = computed(() => userInfo.value.role === 'admin' || userInfo.value.role === 1)
 const roleLabel = computed(() => {
   const role = userInfo.value.role
