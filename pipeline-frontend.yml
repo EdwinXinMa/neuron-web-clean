@@ -35,11 +35,16 @@ stages:
             name: 前端编译打包
             step: NodeBuild
             with:
-              nodeVersion: "18"
+              nodeVersion: "18.12"
               run: |
                 echo "============================================================"
                 echo "  NeuronCloud 前端构建"
                 echo "============================================================"
+                export NVM_DIR="$HOME/.nvm"
+                [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+                nvm install 20
+                nvm use 20
+                echo "Node: $(node -v)"
                 npm install -g pnpm
                 pnpm install
                 npx vite build
