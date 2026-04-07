@@ -42,7 +42,7 @@ stages:
                 echo "============================================================"
                 npm install -g pnpm
                 pnpm install
-                pnpm build
+                npx vite build
                 echo "[INFO] 构建产物:"
                 ls -lh dist/ 2>/dev/null || echo "未找到 dist"
                 echo "============================================================"
