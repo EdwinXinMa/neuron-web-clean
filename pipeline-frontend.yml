@@ -88,7 +88,7 @@ stages:
               value: $[stages.stage_build.job_0.step_docker.artifacts.artifact]
           useEncode: false
           pauseStrategy: noPause
-          machineGroup: cTY11FaiMYWhg3sK
+          machineGroup: icVASlgYemILyYwK
           run: |-
             set -ex
 
