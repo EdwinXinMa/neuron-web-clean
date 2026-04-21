@@ -233,11 +233,23 @@
             </div>
             <div class="info-row">
               <span class="info-label">充电电流</span>
-              <span class="info-value" style="color: #16a34a; font-weight: 600;">{{ selectedDevice.totalChargingCurrent > 0 ? selectedDevice.totalChargingCurrent + ' A' : '-' }}</span>
+              <span class="info-value" style="color: #16a34a; font-weight: 600;">
+                <template v-if="chargingCurrentTotal > 0">
+                  {{ chargingCurrentTotal }} A
+                  <span v-if="selectedDevice.totalChargingCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.totalChargingCurrentA }} B:{{ selectedDevice.totalChargingCurrentB }} C:{{ selectedDevice.totalChargingCurrentC }})</span>
+                </template>
+                <template v-else>-</template>
+              </span>
             </div>
             <div class="info-row">
               <span class="info-label">家用电流</span>
-              <span class="info-value">{{ selectedDevice.loadCurrent > 0 ? selectedDevice.loadCurrent + ' A' : '-' }}</span>
+              <span class="info-value">
+                <template v-if="loadCurrentTotal > 0">
+                  {{ loadCurrentTotal }} A
+                  <span v-if="selectedDevice.loadCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.loadCurrentA }} B:{{ selectedDevice.loadCurrentB }} C:{{ selectedDevice.loadCurrentC }})</span>
+                </template>
+                <template v-else>-</template>
+              </span>
             </div>
             <div class="info-row">
               <span class="info-label">电流阈值</span>
@@ -426,6 +438,11 @@
           <a-radio-button value="6h">6小时</a-radio-button>
           <a-radio-button value="24h">24小时</a-radio-button>
           <a-radio-button value="7d">7天</a-radio-button>
+        </a-radio-group>
+        <a-radio-group v-model:value="chartPhase" size="small" style="margin-left: 12px;" @change="onChartPhaseChange">
+          <a-radio-button value="A">A相</a-radio-button>
+          <a-radio-button value="B">B相</a-radio-button>
+          <a-radio-button value="C">C相</a-radio-button>
         </a-radio-group>
       </div>
       <div class="dlm-chart-container">
@@ -671,8 +688,12 @@
       ctMax: ct.breakerRating ?? d.breakerRating ?? 32,
       voltage: ct.voltage ?? 0,
       totalPower: ct.totalPower ?? 0,
-      loadCurrent: ct.loadCurrent ?? 0,
-      totalChargingCurrent: ct.totalChargingCurrent ?? 0,
+      loadCurrentA: ct.loadCurrentA ?? 0,
+      loadCurrentB: ct.loadCurrentB ?? 0,
+      loadCurrentC: ct.loadCurrentC ?? 0,
+      totalChargingCurrentA: ct.totalChargingCurrentA ?? 0,
+      totalChargingCurrentB: ct.totalChargingCurrentB ?? 0,
+      totalChargingCurrentC: ct.totalChargingCurrentC ?? 0,
       wifiRssi: ct.wifiRssi ?? null,
       dataFresh: ct.dataFresh !== false,
       // 下挂充电桩（合并 DLMStatus 数据）
@@ -812,6 +833,16 @@
   const ctCurrentTotal = computed(() => {
     if (!selectedDevice.value) return 0;
     return +(selectedDevice.value.ctCurrentA + selectedDevice.value.ctCurrentB + selectedDevice.value.ctCurrentC).toFixed(1);
+  });
+
+  const chargingCurrentTotal = computed(() => {
+    if (!selectedDevice.value) return 0;
+    return +(selectedDevice.value.totalChargingCurrentA + selectedDevice.value.totalChargingCurrentB + selectedDevice.value.totalChargingCurrentC).toFixed(1);
+  });
+
+  const loadCurrentTotal = computed(() => {
+    if (!selectedDevice.value) return 0;
+    return +(selectedDevice.value.loadCurrentA + selectedDevice.value.loadCurrentB + selectedDevice.value.loadCurrentC).toFixed(1);
   });
 
   const currentBarColor = computed(() => {
@@ -1108,8 +1139,10 @@
   // ==================== DLM 历史图表 ====================
   const showDlmChart = ref(false);
   const chartRange = ref('1h');
+  const chartPhase = ref('A');
   const chartLoading = ref(false);
   const chartEmpty = ref(false);
+  let chartPoints: any[] = [];
   const chartRef = ref<HTMLElement>();
   const powerChartRef = ref<HTMLElement>();
   const voltageChartRef = ref<HTMLElement>();
@@ -1123,6 +1156,7 @@
     }
     showDlmChart.value = true;
     chartRange.value = '1h';
+    chartPhase.value = 'A';
     await nextTick();
     loadChartData();
   }
@@ -1137,8 +1171,8 @@
       const res = await http.get(`/device/${selectedDevice.value.sn}/dlm/history`, {
         params: { range: chartRange.value },
       });
-      const points = res.result?.points || [];
-      if (points.length === 0) {
+      chartPoints = res.result?.points || [];
+      if (chartPoints.length === 0) {
         chartEmpty.value = true;
         if (chartInstance) {
           chartInstance.dispose();
@@ -1146,11 +1180,17 @@
         }
         return;
       }
-      renderChart(points);
+      renderChart(chartPoints);
     } catch (e: any) {
       message.error('加载图表失败：' + (e.message || '网络错误'));
     } finally {
       chartLoading.value = false;
+    }
+  }
+
+  function onChartPhaseChange() {
+    if (chartPoints.length > 0) {
+      renderChart(chartPoints);
     }
   }
 
@@ -1203,7 +1243,7 @@
       },
       yAxis: {
         type: 'value',
-        name: '电流 (A)',
+        name: `电流 - ${chartPhase.value}相 (A)`,
         nameTextStyle: { color: '#94a3b8' },
         axisLabel: { color: '#94a3b8' },
         splitLine: { lineStyle: { color: '#f1f5f9' } },
@@ -1218,7 +1258,7 @@
           itemStyle: { color: '#f97316' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => p.load_current),
+          data: points.map((p: any) => p[`load_current_${chartPhase.value.toLowerCase()}`]),
         },
         {
           name: '充电用电',
@@ -1229,7 +1269,7 @@
           itemStyle: { color: '#22c55e' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => p.total_charging_current),
+          data: points.map((p: any) => p[`total_charging_current_${chartPhase.value.toLowerCase()}`]),
         },
         {
           name: '断路器额定值',
