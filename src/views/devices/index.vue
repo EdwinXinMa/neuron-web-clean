@@ -709,7 +709,7 @@
         // 枪列表（合并 DLMStatus 枪级别数据）
         connectors: (pile.connectors || []).map((conn: any) => ({
           id: conn.connectorId,
-          status: conn.status === 'Charging' ? 'charging' : conn.status === 'Faulted' ? 'fault' : conn.status === 'Unavailable' ? 'offline' : 'idle',
+          status: connStatusMap(conn.dlmStatus || conn.status),
           current: conn.currentPower ?? 0,
           dlmStatus: conn.dlmStatus ?? null,
           startTime: conn.startTime ?? null,
@@ -779,9 +779,19 @@
     return map[level] || level;
   }
 
+  function connStatusMap(ocppStatus: string): string {
+    const map: Record<string, string> = {
+      Available: 'idle', Preparing: 'preparing', Charging: 'charging',
+      SuspendedEVSE: 'suspended', SuspendedEV: 'suspended',
+      Finishing: 'finishing', Faulted: 'fault', Unavailable: 'unavailable',
+    };
+    return map[ocppStatus] || 'idle';
+  }
+
   function chargerStatusLabel(status: string): string {
     const map: Record<string, string> = {
       charging: '充电中', idle: '空闲', fault: '故障',
+      preparing: '已插枪', suspended: '暂停', finishing: '已完成', unavailable: '不可用',
       online: '在线', offline: '离线', unactivated: '未激活',
     };
     return map[status] || status;
@@ -851,6 +861,7 @@
   function chargerTagColor(status: string): string {
     const map: Record<string, string> = {
       charging: '#3b82f6', idle: '#2d9d78', fault: '#ff4757',
+      preparing: '#d97706', suspended: '#d97706', finishing: '#3b82f6', unavailable: '#64748b',
       online: '#2d9d78', offline: '#64748b', unactivated: '#faad14',
     };
     return map[status] || '#64748b';
@@ -1509,6 +1520,22 @@
   }
 
   .status-dot.status-idle {
+    background: #64748b;
+  }
+
+  .status-dot.status-preparing {
+    background: #d97706;
+  }
+
+  .status-dot.status-suspended {
+    background: #d97706;
+  }
+
+  .status-dot.status-finishing {
+    background: #3b82f6;
+  }
+
+  .status-dot.status-unavailable {
     background: #64748b;
   }
 
