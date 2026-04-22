@@ -1,9 +1,10 @@
 import { ref, onBeforeUnmount } from 'vue'
 
 export interface DeviceEvent {
-  type: 'ONLINE' | 'OFFLINE' | 'FAULT' | 'ALERT'
+  type: 'ONLINE' | 'OFFLINE' | 'FAULT' | 'ALERT' | 'DLM_UPDATE'
   deviceSn: string
   detail: string
+  data?: string
   timestamp: string
 }
 
@@ -13,6 +14,7 @@ let ws: WebSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 const listeners = new Set<EventCallback>()
 const connected = ref(false)
+let subscribedSn: string | null = null
 
 function ensureConnection() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
@@ -32,6 +34,10 @@ function ensureConnection() {
   ws.onopen = () => {
     connected.value = true
     console.log('[DeviceEvents] WebSocket connected')
+    // 重连后恢复订阅
+    if (subscribedSn && ws) {
+      ws.send(subscribedSn)
+    }
   }
 
   ws.onmessage = (event) => {
@@ -67,7 +73,17 @@ function scheduleReconnect() {
 }
 
 /**
- * 监听设备事件（ONLINE/OFFLINE/FAULT/ALERT）
+ * 订阅指定设备的 DLMStatus 实时推送
+ */
+export function subscribeDlm(sn: string) {
+  subscribedSn = sn
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(sn)
+  }
+}
+
+/**
+ * 监听设备事件（ONLINE/OFFLINE/FAULT/ALERT/DLM_UPDATE）
  * 自动管理 WebSocket 连接生命周期：有监听者时连接，全部退出时断开
  */
 export function useDeviceEvents(callback: EventCallback) {
@@ -78,6 +94,7 @@ export function useDeviceEvents(callback: EventCallback) {
 
   onBeforeUnmount(() => {
     listeners.delete(callback)
+    subscribedSn = null
     // 没有监听者时断开
     if (listeners.size === 0) {
       if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }

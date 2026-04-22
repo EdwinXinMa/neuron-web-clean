@@ -278,13 +278,13 @@
               <div class="pile-card-header">
                 <div class="pile-card-left">
                   <span class="pile-sn-badge" :style="{ background: pileGradient(pile.hasDlmData
-                    ? (pile.connectStatus === 'offline' ? 'offline' : (pile.chargeEVStatus === 'Charging' ? 'charging' : 'idle'))
+                    ? (pile.connectStatus === 'offline' ? 'offline' : connStatusMap(pile.chargeEVStatus || 'Available'))
                     : pile.status) }">{{ pile.sn }}</span>
                   <span v-if="pile.chargeVersion" class="pile-version">固件 {{ pile.chargeVersion }}</span>
                   <!-- 有 DLMStatus 数据：用 connectStatus + charge_EVStatus -->
                   <template v-if="pile.hasDlmData">
                     <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? '在线' : '离线' }}</a-tag>
-                    <a-tag v-if="pile.chargeEVStatus && pile.connectStatus !== 'offline'" :color="chargerTagColor(pile.chargeEVStatus === 'Charging' ? 'charging' : 'idle')" size="small">{{ evStatusLabel(pile.chargeEVStatus) }}</a-tag>
+                    <a-tag v-if="pile.chargeEVStatus && pile.connectStatus !== 'offline'" :color="chargerTagColor(connStatusMap(pile.chargeEVStatus))" size="small">{{ evStatusLabel(pile.chargeEVStatus) }}</a-tag>
                   </template>
                   <!-- 没有 DLMStatus 数据：fallback 到 nc_device.online_status -->
                   <template v-else>
@@ -467,11 +467,74 @@
   import { message } from 'ant-design-vue';
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
-  import { useDeviceEvents } from '@/composables/useDeviceEvents';
+  import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
   import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined } from '@ant-design/icons-vue';
 
   // 监听设备事件，自动刷新列表
-  useDeviceEvents(() => {
+  useDeviceEvents((event) => {
+    if (event.type === 'DLM_UPDATE' && event.deviceSn === selectedSn.value && event.data) {
+      // DLMStatus 实时推送：直接更新 ctData，不用拉接口
+      try {
+        const dlm = JSON.parse(event.data);
+        if (deviceDetail.value) {
+          const ct = deviceDetail.value.ctData || {};
+          // 更新 CT 数据
+          if (dlm.totalCurrentA != null) { ct.totalCurrentA = dlm.totalCurrentA; }
+          if (dlm.totalCurrentB != null) { ct.totalCurrentB = dlm.totalCurrentB; }
+          if (dlm.totalCurrentC != null) { ct.totalCurrentC = dlm.totalCurrentC; }
+          if (dlm.voltage != null) { ct.voltage = dlm.voltage; }
+          if (dlm.totalPower != null) { ct.totalPower = dlm.totalPower; }
+          if (dlm.loadCurrentA != null) { ct.loadCurrentA = dlm.loadCurrentA; }
+          if (dlm.loadCurrentB != null) { ct.loadCurrentB = dlm.loadCurrentB; }
+          if (dlm.loadCurrentC != null) { ct.loadCurrentC = dlm.loadCurrentC; }
+          if (dlm.totalChargingCurrentA != null) { ct.totalChargingCurrentA = dlm.totalChargingCurrentA; }
+          if (dlm.totalChargingCurrentB != null) { ct.totalChargingCurrentB = dlm.totalChargingCurrentB; }
+          if (dlm.totalChargingCurrentC != null) { ct.totalChargingCurrentC = dlm.totalChargingCurrentC; }
+          if (dlm.wifiRssi != null) { ct.wifiRssi = dlm.wifiRssi; }
+          if (dlm.breakerRating != null) { ct.breakerRating = dlm.breakerRating; }
+          if (dlm.macAddress != null && deviceDetail.value.device) {
+            deviceDetail.value.device.macAddress = dlm.macAddress;
+          }
+          ct.dataFresh = true;
+          deviceDetail.value.ctData = { ...ct };
+          // 更新桩/枪实时数据
+          if (dlm.pileAllocations && deviceDetail.value.chargers) {
+            const dlmPileMap: Record<string, any> = {};
+            for (const pile of dlm.pileAllocations) {
+              if (pile.sn) { dlmPileMap[pile.sn] = pile; }
+            }
+            for (const charger of deviceDetail.value.chargers) {
+              const dp = dlmPileMap[charger.sn];
+              if (!dp) { continue; }
+              charger.allocatedCurrent = dp.allocatedCurrent;
+              charger.connectStatus = dp.connectStatus;
+              charger.charge_EVStatus = dp.charge_EVStatus;
+              charger.energy = dp.energy;
+              charger.charge_Method = dp.charge_Method;
+              charger.charge_version = dp.charge_version;
+              charger.snr = dp.snr;
+              charger.atten = dp.atten;
+              if (dp.connectors && charger.connectors) {
+                const dlmConnMap: Record<number, any> = {};
+                for (const c of dp.connectors) { dlmConnMap[c.connectorId] = c; }
+                for (const conn of charger.connectors) {
+                  const dc = dlmConnMap[conn.connectorId];
+                  if (!dc) { continue; }
+                  conn.dlmStatus = dc.status;
+                  conn.startTime = dc.startTime;
+                  conn.endTime = dc.endTime;
+                  conn.duration = dc.duration;
+                }
+              }
+            }
+            // 触发响应式更新
+            deviceDetail.value = { ...deviceDetail.value };
+          }
+        }
+      } catch { /* ignore parse error */ }
+      return;
+    }
+    // 其他事件（ONLINE/OFFLINE/FAULT/ALERT）：刷新列表和详情
     loadList();
     if (selectedSn.value) {
       loadDetail(selectedSn.value);
@@ -812,6 +875,10 @@
       online: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
       charging: 'linear-gradient(135deg, #2a4a7f, #3b82f6)',
       idle: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
+      preparing: 'linear-gradient(135deg, #92400e, #d97706)',
+      suspended: 'linear-gradient(135deg, #92400e, #d97706)',
+      finishing: 'linear-gradient(135deg, #2a4a7f, #3b82f6)',
+      unavailable: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
       offline: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
       fault: 'linear-gradient(135deg, #8b3a3a, #c96b6b)',
       unactivated: 'linear-gradient(135deg, #4a5e78, #7c9ab8)',
@@ -871,6 +938,7 @@
     selectedSn.value = device.sn;
     logTab.value = 'alerts';
     loadDetail(device.sn);
+    subscribeDlm(device.sn);
     router.replace({ query: { ...route.query, id: device.sn } });
   }
 
@@ -1337,6 +1405,7 @@
     if (queryId) {
       selectedSn.value = queryId;
       loadDetail(queryId);
+      subscribeDlm(queryId);
     }
     loadList();
   });
