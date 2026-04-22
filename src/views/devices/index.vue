@@ -144,7 +144,8 @@
               <span class="info-label">固件版本</span>
               <span class="info-value">
                 {{ selectedDevice.fw }}
-                <a-button v-if="selectedDevice.status !== 'unactivated' && otaPhase === 'idle'" type="link" size="small" class="action-btn" @click="openOtaSelect">升级</a-button>
+                <a-tooltip v-if="selectedDevice.status === 'online' && otaPhase === 'idle' && isAnyCharging" title="充电中禁止升级"><a-button type="link" size="small" class="action-btn" disabled>升级</a-button></a-tooltip>
+                <a-button v-else-if="selectedDevice.status === 'online' && otaPhase === 'idle'" type="link" size="small" class="action-btn" @click="openOtaSelect">升级</a-button>
               </span>
             </div>
             <!-- 选择固件（内嵌） -->
@@ -251,7 +252,8 @@
               <span class="info-label">电流阈值</span>
               <span class="info-value">
                 {{ selectedDevice.ctMax }} A
-                <a-button v-if="selectedDevice.status !== 'unactivated'" type="link" size="small" class="action-btn" @click="openDlmModal">修改</a-button>
+                <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" title="充电中禁止修改"><a-button type="link" size="small" class="action-btn" disabled>修改</a-button></a-tooltip>
+                <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">修改</a-button>
               </span>
             </div>
             <div class="info-row">
@@ -284,7 +286,7 @@
                   <!-- 有 DLMStatus 数据：用 connectStatus + charge_EVStatus -->
                   <template v-if="pile.hasDlmData">
                     <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? '在线' : '离线' }}</a-tag>
-                    <a-tag v-if="pile.chargeEVStatus && pile.connectStatus !== 'offline'" :color="chargerTagColor(connStatusMap(pile.chargeEVStatus))" size="small">{{ evStatusLabel(pile.chargeEVStatus) }}</a-tag>
+                    <a-tag v-if="pile.chargeEVStatus && pile.connectStatus !== 'offline'" :color="chargerTagColor(connStatusMap(pile.chargeEVStatus))" :class="[`tag-${connStatusMap(pile.chargeEVStatus)}`]" size="small">{{ evStatusLabel(pile.chargeEVStatus) }}</a-tag>
                   </template>
                   <!-- 没有 DLMStatus 数据：fallback 到 nc_device.online_status -->
                   <template v-else>
@@ -294,13 +296,13 @@
                 </div>
                 <div class="pile-card-right">
                   <span v-if="pile.allocatedCurrent != null" class="pile-current">{{ pile.allocatedCurrent }} A</span>
-                  <a-tooltip v-if="pile.snr != null">
+                  <!-- <a-tooltip v-if="pile.snr != null">
                     <template #title>
                       <div>PLC 信噪比: {{ pile.snr }}</div>
                       <div>衰减: {{ pile.atten }}</div>
                     </template>
                     <span class="pile-signal">📶</span>
-                  </a-tooltip>
+                  </a-tooltip> -->
                 </div>
               </div>
               <!-- 充电信息（仅 DLMStatus 有数据且充电中显示） -->
@@ -314,7 +316,7 @@
                   <span class="conn-indent">└</span>
                   <span :class="['status-dot', `status-${conn.status}`]"></span>
                   <span class="conn-label">枪 {{ conn.id }}</span>
-                  <a-tag :color="chargerTagColor(conn.status)" class="charger-tag" size="small">
+                  <a-tag :color="chargerTagColor(conn.status)" :class="['charger-tag', `tag-${conn.status}`]" size="small">
                     {{ chargerStatusLabel(conn.status) }}
                   </a-tag>
                   <span v-if="conn.duration > 0" class="conn-duration">{{ formatDuration(conn.duration) }}</span>
@@ -879,9 +881,9 @@
       online: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
       charging: 'linear-gradient(135deg, #2a4a7f, #3b82f6)',
       idle: 'linear-gradient(135deg, #188a7e, #2dd4bf)',
-      preparing: 'linear-gradient(135deg, #92400e, #d97706)',
+      preparing: 'linear-gradient(135deg, #0097a7, #00BCD4)',
       suspended: 'linear-gradient(135deg, #92400e, #d97706)',
-      finishing: 'linear-gradient(135deg, #2a4a7f, #3b82f6)',
+      finishing: 'linear-gradient(135deg, #0f766e, #14B8A6)',
       unavailable: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
       offline: 'linear-gradient(135deg, #5a6a7a, #a0aec0)',
       fault: 'linear-gradient(135deg, #8b3a3a, #c96b6b)',
@@ -904,6 +906,12 @@
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m`;
   }
+
+  /** 是否有桩在充电中 */
+  const isAnyCharging = computed(() => {
+    if (!selectedDevice.value) return false;
+    return selectedDevice.value.chargers.some((p: any) => p.hasDlmData && p.chargeEVStatus === 'Charging');
+  });
 
   /** 三相电流合计（用于进度条和告警判断） */
   const ctCurrentTotal = computed(() => {
@@ -932,7 +940,7 @@
   function chargerTagColor(status: string): string {
     const map: Record<string, string> = {
       charging: '#3b82f6', idle: '#2d9d78', fault: '#ff4757',
-      preparing: '#d97706', suspended: '#d97706', finishing: '#3b82f6', unavailable: '#64748b',
+      preparing: '#00BCD4', suspended: '#d97706', finishing: '#14B8A6', unavailable: '#64748b',
       online: '#2d9d78', offline: '#64748b', unactivated: '#faad14',
     };
     return map[status] || '#64748b';
@@ -1597,7 +1605,7 @@
   }
 
   .status-dot.status-preparing {
-    background: #d97706;
+    background: #00BCD4;
   }
 
   .status-dot.status-suspended {
@@ -1605,7 +1613,7 @@
   }
 
   .status-dot.status-finishing {
-    background: #3b82f6;
+    background: #14B8A6;
   }
 
   .status-dot.status-unavailable {
@@ -2025,8 +2033,27 @@
   }
 
   .pile-card-charging {
-    border-color: #86efac;
-    background: #f0fdf4;
+    border-color: #93c5fd;
+    background: #f0f7ff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pile-card-charging::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 80%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+    animation: charging-pulse 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes charging-pulse {
+    0% { left: -50%; }
+    100% { left: 100%; }
   }
 
   .pile-card-offline {
@@ -2130,6 +2157,20 @@
 
   .charger-tag {
     font-size: 11px;
+  }
+
+  .tag-preparing:deep(.ant-tag) ,
+  :deep(.tag-preparing) {
+    background: #00BCD4 !important;
+    border: none !important;
+    color: #fff !important;
+  }
+
+  .tag-finishing:deep(.ant-tag),
+  :deep(.tag-finishing) {
+    background: #14B8A6 !important;
+    border: none !important;
+    color: #fff !important;
   }
 
   /* ========== 电流进度条 ========== */
