@@ -182,10 +182,6 @@
               <span class="info-value">{{ selectedDevice.wifiRssi != null ? selectedDevice.wifiRssi + ' dBm' : '-' }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">硬件版本</span>
-              <span class="info-value">{{ selectedDevice.hardwareVersion || '-' }}</span>
-            </div>
-            <div class="info-row">
               <span class="info-label">MAC 地址</span>
               <span class="info-value" style="font-family: monospace;">{{ selectedDevice.macAddress || '-' }}</span>
             </div>
@@ -676,7 +672,6 @@
       deviceType: d.deviceType,
       deviceModel: d.deviceModel,
       batchNo: d.batchNo,
-      hardwareVersion: d.hardwareVersion,
       macAddress: d.macAddress,
       productionDate: d.productionDate,
       shipDate: d.shipDate,
