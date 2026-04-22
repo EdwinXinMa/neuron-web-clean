@@ -477,6 +477,10 @@
       try {
         const dlm = JSON.parse(event.data);
         if (deviceDetail.value) {
+          // 收到 DLMStatus 说明设备在线
+          if (deviceDetail.value.device) {
+            deviceDetail.value.device.onlineStatus = 'ONLINE';
+          }
           const ct = deviceDetail.value.ctData || {};
           // 更新 CT 数据
           if (dlm.totalCurrentA != null) { ct.totalCurrentA = dlm.totalCurrentA; }
