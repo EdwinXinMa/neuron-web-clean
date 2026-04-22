@@ -431,16 +431,17 @@
         <div class="dlm-chart-title">动态负载管理（DLM）历史</div>
       </div>
       <div class="dlm-chart-toolbar">
-        <a-radio-group v-model:value="chartRange" size="small" @change="loadChartData">
+        <a-radio-group v-model:value="chartPhase" size="small" @change="onChartPhaseChange">
+          <a-radio-button value="total">总</a-radio-button>
+          <a-radio-button value="A">A相</a-radio-button>
+          <a-radio-button value="B">B相</a-radio-button>
+          <a-radio-button value="C">C相</a-radio-button>
+        </a-radio-group>
+        <a-radio-group v-model:value="chartRange" size="small" style="margin-left: auto;" @change="loadChartData">
           <a-radio-button value="1h">1小时</a-radio-button>
           <a-radio-button value="6h">6小时</a-radio-button>
           <a-radio-button value="24h">24小时</a-radio-button>
           <a-radio-button value="7d">7天</a-radio-button>
-        </a-radio-group>
-        <a-radio-group v-model:value="chartPhase" size="small" style="margin-left: 12px;" @change="onChartPhaseChange">
-          <a-radio-button value="A">A相</a-radio-button>
-          <a-radio-button value="B">B相</a-radio-button>
-          <a-radio-button value="C">C相</a-radio-button>
         </a-radio-group>
       </div>
       <div class="dlm-chart-container">
@@ -1225,7 +1226,7 @@
   // ==================== DLM 历史图表 ====================
   const showDlmChart = ref(false);
   const chartRange = ref('1h');
-  const chartPhase = ref('A');
+  const chartPhase = ref('total');
   const chartLoading = ref(false);
   const chartEmpty = ref(false);
   let chartPoints: any[] = [];
@@ -1242,7 +1243,7 @@
     }
     showDlmChart.value = true;
     chartRange.value = '1h';
-    chartPhase.value = 'A';
+    chartPhase.value = 'total';
     await nextTick();
     loadChartData();
   }
@@ -1329,7 +1330,7 @@
       },
       yAxis: {
         type: 'value',
-        name: `电流 - ${chartPhase.value}相 (A)`,
+        name: chartPhase.value === 'total' ? '电流 - 总 (A)' : `电流 - ${chartPhase.value}相 (A)`,
         nameTextStyle: { color: '#94a3b8' },
         axisLabel: { color: '#94a3b8' },
         splitLine: { lineStyle: { color: '#f1f5f9' } },
@@ -1344,7 +1345,9 @@
           itemStyle: { color: '#f97316' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => p[`load_current_${chartPhase.value.toLowerCase()}`]),
+          data: points.map((p: any) => chartPhase.value === 'total'
+            ? +((p.load_current_a || 0) + (p.load_current_b || 0) + (p.load_current_c || 0)).toFixed(1)
+            : p[`load_current_${chartPhase.value.toLowerCase()}`]),
         },
         {
           name: '充电用电',
@@ -1355,7 +1358,9 @@
           itemStyle: { color: '#22c55e' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => p[`total_charging_current_${chartPhase.value.toLowerCase()}`]),
+          data: points.map((p: any) => chartPhase.value === 'total'
+            ? +((p.total_charging_current_a || 0) + (p.total_charging_current_b || 0) + (p.total_charging_current_c || 0)).toFixed(1)
+            : p[`total_charging_current_${chartPhase.value.toLowerCase()}`]),
         },
         {
           name: '断路器额定值',
@@ -2481,7 +2486,9 @@
   }
   .dlm-chart-toolbar {
     margin-bottom: 12px;
-    text-align: right;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
   .dlm-chart-title {
     font-size: 16px;
