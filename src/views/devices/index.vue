@@ -534,9 +534,9 @@
                 }
               }
             }
-            // 触发响应式更新
-            deviceDetail.value = { ...deviceDetail.value };
           }
+          // 触发响应式更新（移到外面，确保 CT 数据也能及时渲染）
+          deviceDetail.value = { ...deviceDetail.value };
         }
       } catch { /* ignore parse error */ }
       return;
@@ -2053,6 +2053,7 @@
     height: 100%;
     background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
     animation: charging-pulse 3s ease-in-out infinite;
+    animation-delay: -999s;
     pointer-events: none;
   }
 
