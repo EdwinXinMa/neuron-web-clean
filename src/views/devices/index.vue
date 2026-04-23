@@ -256,10 +256,10 @@
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">修改</a-button>
               </span>
             </div>
-            <div class="info-row">
+            <!-- <div class="info-row">
               <span class="info-label">电压</span>
               <span class="info-value">{{ selectedDevice.voltage > 0 ? selectedDevice.voltage + ' V' : '-' }}</span>
-            </div>
+            </div> -->
             <!-- <div class="info-row">
               <span class="info-label">总功率</span>
               <span class="info-value">{{ selectedDevice.totalPower > 0 ? selectedDevice.totalPower + ' W' : '-' }}</span>
