@@ -861,7 +861,7 @@
   function chargerStatusLabel(status: string): string {
     const map: Record<string, string> = {
       charging: '充电中', idle: '空闲', fault: '故障',
-      preparing: '已插枪', suspended: '暂停', finishing: '已完成', unavailable: '不可用',
+      preparing: '已插枪', suspended: '暂停中', finishing: '已完成', unavailable: '不可用',
       online: '在线', offline: '离线', unactivated: '未激活',
     };
     return map[status] || status;
@@ -895,7 +895,7 @@
 
   function evStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      Available: '空闲', Preparing: '就绪', Charging: '充电中', SuspendedEVSE: '暂停(桩)', SuspendedEV: '暂停(车)', Finishing: '已完成', Faulted: '故障', Unavailable: '不可用',
+      Available: '空闲', Preparing: '就绪', Charging: '充电中', SuspendedEVSE: '暂停中(桩)', SuspendedEV: '暂停中(车)', Finishing: '已完成', Faulted: '故障', Unavailable: '不可用',
     };
     return map[status] || status;
   }
