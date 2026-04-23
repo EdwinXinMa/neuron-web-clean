@@ -57,6 +57,15 @@
           </template>
           <template v-else-if="column.dataIndex === 'action'">
             <a-button type="link" size="small" class="edit-btn" @click="openEditModal(record)">维护</a-button>
+            <a-popconfirm
+              v-if="!record.onlineStatus || record.onlineStatus === 'UNACTIVATED'"
+              title="确定删除该设备？"
+              ok-text="删除"
+              cancel-text="取消"
+              @confirm="handleDelete(record)"
+            >
+              <a-button type="link" size="small" danger>删除</a-button>
+            </a-popconfirm>
           </template>
         </template>
       </a-table>
@@ -77,7 +86,7 @@
             v-model:value="formData.sn"
             placeholder="设备序列号"
             :disabled="isEdit"
-            @blur="formData.sn = formData.sn.toUpperCase().replace(/\s/g, '')"
+            @blur="formData.sn = formData.sn.trim().replace(/\s/g, '')"
           />
         </a-form-item>
 
@@ -237,7 +246,7 @@ async function handleSubmit() {
   try {
     const body: any = {
       id: isEdit.value ? editId.value : undefined,
-      sn: formData.sn.toUpperCase().replace(/\s/g, ''),
+      sn: isEdit.value ? undefined : formData.sn.trim().replace(/\s/g, ''),
       deviceType: 'N3_LITE',
       dealer: formData.dealer,
       batchNo: formData.batchNo || undefined,
@@ -256,6 +265,16 @@ async function handleSubmit() {
     // http 拦截器已处理错误提示
   } finally {
     submitLoading.value = false
+  }
+}
+
+async function handleDelete(record: any) {
+  try {
+    await http.delete('/device/delete', { params: { id: record.id } })
+    message.success('删除成功')
+    loadList()
+  } catch {
+    // http 拦截器已处理错误提示
   }
 }
 
