@@ -684,6 +684,37 @@
     }
   }
 
+  // Tab 切换时重新拉取对应数据
+  watch(logTab, async (key) => {
+    const sn = selectedSn.value;
+    if (!sn) return;
+    try {
+      if (key === 'alerts') {
+        const res: any = await getDeviceDetail(sn);
+        const detail = res.result || res;
+        if (deviceDetail.value) {
+          deviceDetail.value.recentAlerts = detail.recentAlerts;
+        }
+      } else if (key === 'logs') {
+        const res: any = await http.get('/oplog/list', { params: { deviceSn: sn, pageSize: 20 } });
+        const logData = res.result || res;
+        deviceLogsData.value = (logData.records || []).map((l: any) => ({
+          time: l.opTime || l.createTime || '-',
+          user: l.opUser || '-',
+          type: opTypeLabel(l.opType),
+          content: l.opContent || '-',
+          result: l.opResult === 'SUCCESS' ? 'success' : 'fail',
+        }));
+      } else if (key === 'charging') {
+        const res: any = await http.get(`/device/${sn}/charging-sessions`, { params: { pageSize: 10 } });
+        const chargeData = res.result || res;
+        chargingSessionsData.value = chargeData.records || [];
+      }
+    } catch (e: any) {
+      // 静默失败，不阻断 tab 切换
+    }
+  });
+
   function opTypeLabel(t: string): string {
     const map: Record<string, string> = {
       OTA_UPGRADE: 'OTA 升级',

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>N3 Lite 前端版本迭代</title>
+<style>
+:root{--primary:#1a3a5c;--accent:#0e7490;--accent-light:#e0f7fa;--success:#16a34a;--danger:#dc2626;--warning:#d97706;--bg:#f8fafb;--card:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--code-bg:#0f172a}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.75}
+.doc-header{background:linear-gradient(135deg,#0e7490,#6366f1);color:#fff;padding:52px 0 44px;text-align:center}
+.doc-header h1{font-size:22px;font-weight:400;opacity:.9;margin-bottom:4px}
+.meta-tags{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.meta-tag{background:rgba(255,255,255,.18);padding:4px 14px;border-radius:20px;font-size:13px}
+.container{max-width:1024px;margin:0 auto;padding:0 24px}
+.section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:32px 40px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.section-label{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:8px;letter-spacing:.5px}
+h2{font-size:22px;color:var(--primary);font-weight:600;margin-bottom:18px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+h3{font-size:17px;color:var(--primary);margin:24px 0 12px;font-weight:600}
+h4{font-size:15px;color:var(--accent);margin:18px 0 10px;font-weight:600}
+p{margin:10px 0}
+ul,ol{margin:8px 0;padding-left:20px}
+li{margin:4px 0}
+code{background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:13px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14px}
+th,td{border:1px solid var(--border);padding:10px 14px;text-align:left}
+th{background:#f1f5f9;font-weight:600;color:var(--primary)}
+tr:nth-child(even){background:#f8fafc}
+.highlight{background:#ecfdf5;border-left:3px solid #10b981;border-radius:6px;padding:16px 20px;margin:16px 0;font-size:14px;line-height:1.8}
+.highlight strong{color:var(--primary)}
+.ver-badge{display:inline-block;background:linear-gradient(135deg,#0e7490,#6366f1);color:#fff;padding:4px 14px;border-radius:6px;font-size:14px;font-weight:600;margin-right:8px}
+.ver-date{color:var(--muted);font-size:13px}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;margin-right:4px}
+.tag-feat{background:#dcfce7;color:#166534}
+.tag-fix{background:#fee2e2;color:#991b1b}
+.tag-refactor{background:#e0f2fe;color:#075985}
+.tag-perf{background:#fef9c3;color:#854d0e}
+.doc-footer{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+@media(max-width:900px){.section{padding:20px 18px}}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="doc-header">
+<div class="container">
+<div style="font-size:42px;font-weight:800;letter-spacing:2px;margin-bottom:8px">V1.1.17</div>
+<h1>N3 Lite 智能充电云平台 — 前端版本迭代</h1>
+<div class="meta-tags" style="margin-top:20px">
+<span class="meta-tag">2026-04-24</span>
+<span class="meta-tag">Vue 3 + Vite + Ant Design Vue</span>
+<span class="meta-tag">AlwaysControl</span>
+</div>
+</div>
+</div>
+
+<div class="container" style="margin-top:32px">
+
+<!-- 版本号说明 -->
+<div class="section">
+<div class="section-label">VERSION SCHEMA</div>
+<h2>版本号规则</h2>
+
+<p>前端版本号采用 <strong>三段式</strong>：<code>V{A}.{B}.{C}</code></p>
+
+<table>
+<tr>
+<th style="width:10%">段位</th>
+<th style="width:18%">名称</th>
+<th style="width:18%">递增条件</th>
+<th>说明</th>
+</tr>
+<tr>
+<td><strong>A</strong></td>
+<td>主版本号</td>
+<td>UI 大改版 / 框架升级</td>
+<td>整体视觉重构、前端框架更换等重大变更。当 A 递增时，B / C 归零</td>
+</tr>
+<tr>
+<td><strong>B</strong></td>
+<td>功能版本号</td>
+<td>新增页面或模块</td>
+<td>新增独立功能页面（如 App 用户管理）。当 B 递增时，C 归零</td>
+</tr>
+<tr>
+<td><strong>C</strong></td>
+<td>修复优化号</td>
+<td>Bug 修复 / UI 优化</td>
+<td>样式调整、交互优化、性能优化、Bug 修复</td>
+</tr>
+</table>
+
+<div class="highlight">
+<strong>示例：</strong><code>V1.1.17</code><br>
+第 1 代 UI / 上线了 1 个功能模块 / 17 次修复优化
+</div>
+</div>
+
+<!-- V1.1 App 用户管理 -->
+<div class="section">
+<div class="section-label">FEATURE RELEASE</div>
+<h2><span class="ver-badge">V1.1.0</span> App 用户管理 <span class="ver-date">2026-04-03</span></h2>
+
+<p>管理中心新增 App 用户管理功能。</p>
+
+<h4>功能新增</h4>
+<ul>
+<li><span class="tag tag-feat">feat</span>管理中心新增 App 用户 Tab 页</li>
+<li><span class="tag tag-feat">feat</span>App 用户列表（注册时间、邮箱、状态）</li>
+<li><span class="tag tag-feat">feat</span>绑定设备弹窗（查看用户绑定的设备列表）</li>
+</ul>
+</div>
+
+<!-- V1.0 基础平台 -->
+<div class="section">
+<div class="section-label">INITIAL RELEASE</div>
+<h2><span class="ver-badge">V1.0.0</span> 基础平台 UI <span class="ver-date">2026-03</span></h2>
+
+<p>N3 Lite 智能充电云平台前端初始版本，完成全部核心页面。</p>
+
+<h4>页面 & 功能</h4>
+<ul>
+<li><span class="tag tag-feat">feat</span>登录页（浅色主题 + 小人动画 + 登录失败大笑效果）</li>
+<li><span class="tag tag-feat">feat</span>总览大屏（统计卡片 / 地图标点+波纹动画 / 在线率饼图 / 今日告警滚动）</li>
+<li><span class="tag tag-feat">feat</span>设备列表（搜索 + 状态筛选 + 分页）+ 设备详情页</li>
+<li><span class="tag tag-feat">feat</span>告警记录查询 + 操作日志查询</li>
+<li><span class="tag tag-feat">feat</span>固件管理（上传 / 发布 / 废弃 / 下载）</li>
+<li><span class="tag tag-feat">feat</span>设备台账录入 / 编辑 / Excel 导入</li>
+<li><span class="tag tag-feat">feat</span>账号管理 + 头像上传</li>
+</ul>
+
+<h4>实时交互</h4>
+<ul>
+<li><span class="tag tag-feat">feat</span>OTA 升级 WebSocket 实时进度条</li>
+<li><span class="tag tag-feat">feat</span>设备状态 WebSocket 实时推送</li>
+<li><span class="tag tag-feat">feat</span>告警角标动态化</li>
+<li><span class="tag tag-feat">feat</span>DLM 配置下发（滑块调节）</li>
+<li><span class="tag tag-feat">feat</span>远程重启按钮</li>
+</ul>
+
+<h4>UI 基础</h4>
+<ul>
+<li><span class="tag tag-feat">feat</span>浅色主题全局重构</li>
+<li><span class="tag tag-feat">feat</span>导航栏 Logo + 水滴选中效果</li>
+<li><span class="tag tag-feat">feat</span>卡片配色收敛（蓝/深绿/灰/砖红/灰蓝）</li>
+</ul>
+</div>
+
+<!-- 修复优化记录 -->
+<div class="section">
+<div class="section-label">PATCHES</div>
+<h2>修复 / 优化记录（C 段：1 → 17）</h2>
+
+<table>
+<tr>
+<th style="width:6%">C</th>
+<th style="width:14%">日期</th>
+<th style="width:10%">类型</th>
+<th>变更内容</th>
+</tr>
+<tr>
+<td>1</td>
+<td>2026-03-28</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>首页大屏重构：卡片阴影优化、导航栏水滴选中效果、饼图立体渐变</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2026-03-28</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>DLM 历史堆叠面积图（ECharts，橙色家庭/绿色充电/红色断路器额定值）</td>
+</tr>
+<tr>
+<td>3</td>
+<td>2026-03-29</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>设备详情页重构：DLM 迷你图入口 + 充电记录 Tab + 告警页优化</td>
+</tr>
+<tr>
+<td>4</td>
+<td>2026-04-01</td>
+<td><span class="tag tag-perf">perf</span></td>
+<td>前端打包优化：antd 按需导入 + echarts 按需 + 分包策略 + gzip 压缩</td>
+</tr>
+<tr>
+<td>5</td>
+<td>2026-04-03</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>DLMStatus 三相电流展示 + 状态枚举值统一 OCPP 标准</td>
+</tr>
+<tr>
+<td>6</td>
+<td>2026-04-03</td>
+<td><span class="tag tag-fix">fix</span></td>
+<td>App 用户绑定弹窗空状态修复（去重 + 统一显示"暂无绑定设备"）</td>
+</tr>
+<tr>
+<td>7</td>
+<td>2026-04-08</td>
+<td><span class="tag tag-refactor">refactor</span></td>
+<td>文件 URL 改用 <code>/minio/</code> 代理路径，前端 <code>toFileUrl()</code> 工具函数</td>
+</tr>
+<tr>
+<td>8</td>
+<td>2026-04-08</td>
+<td><span class="tag tag-perf">perf</span></td>
+<td>nginx 优化：gzip 压缩 + 静态资源缓存 + 上传限制 50M + WebSocket 代理</td>
+</tr>
+<tr>
+<td>9</td>
+<td>2026-04-21</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>DLM 电流三相显示（合计 + A/B/C 明细）+ 图表相位切换 Tab</td>
+</tr>
+<tr>
+<td>10</td>
+<td>2026-04-22</td>
+<td><span class="tag tag-fix">fix</span></td>
+<td>枪状态映射完善（8 种 ChargePointStatus）+ 优先使用 DLMStatus 实时值</td>
+</tr>
+<tr>
+<td>11</td>
+<td>2026-04-22</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>设备详情页 DLMStatus WebSocket 实时更新 + 桩状态颜色完善</td>
+</tr>
+<tr>
+<td>12</td>
+<td>2026-04-22</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>状态配色优化 + 充电中脉冲呼吸动画 + 充电中禁止 OTA 和修改阈值</td>
+</tr>
+<tr>
+<td>13</td>
+<td>2026-04-22</td>
+<td><span class="tag tag-feat">feat</span></td>
+<td>DLM 图表默认显示总电流 + 相位切换按钮左置</td>
+</tr>
+<tr>
+<td>14</td>
+<td>2026-04-23</td>
+<td><span class="tag tag-fix">fix</span></td>
+<td>台账维护不再提交 SN + 去掉 <code>toUpperCase</code> + 未激活设备可删除 + 注释总功率</td>
+</tr>
+<tr>
+<td>15</td>
+<td>2026-04-23</td>
+<td><span class="tag tag-fix">fix</span></td>
+<td>CT 数据与桩数据同步刷新 + 充电脉冲动画同步</td>
+</tr>
+<tr>
+<td>16</td>
+<td>2026-04-23</td>
+<td><span class="tag tag-fix">fix</span></td>
+<td>注释掉设备详情页电压显示</td>
+</tr>
+<tr>
+<td>17</td>
+<td>2026-04-23</td>
+<td><span class="tag tag-fix">fix</span></td>
+<td>桩/枪暂停状态文字改为"暂停中"</td>
+</tr>
+</table>
+</div>
+
+</div>
+
+<div class="doc-footer">
+<p>N3 Lite Cloud Frontend &mdash; V1.1.17</p>
+<p>&copy; 2026 AlwaysControl / XuHeng Electronics</p>
+</div>
+
+</body>
+</html>
