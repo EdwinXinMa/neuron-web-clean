@@ -55,6 +55,9 @@
             </template>
             <!-- DEPRECATED -->
             <template v-else-if="record.status === 'DEPRECATED'">
+              <a-popconfirm title="确认删除该废弃固件？" @confirm="handleDelete(record.id)">
+                <a-button type="link" size="small" class="action-link danger">删除</a-button>
+              </a-popconfirm>
               <a-button type="link" size="small" class="action-link" @click="handleDownload(record.id)">下载</a-button>
             </template>
           </template>
