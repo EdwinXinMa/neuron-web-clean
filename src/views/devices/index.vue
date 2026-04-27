@@ -1332,9 +1332,13 @@
       tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
-          let html = `<div style="font-weight:600;margin-bottom:4px">${params[0].axisValue}</div>`;
+          const t = new Date(params[0].value[0]);
+          const timeStr = chartRange.value === '7d'
+            ? `${t.getMonth() + 1}/${t.getDate()} ${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`
+            : `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+          let html = `<div style="font-weight:600;margin-bottom:4px">${timeStr}</div>`;
           for (const p of params) {
-            html += `<div>${p.marker} ${p.seriesName}: <b>${p.value}</b> A</div>`;
+            html += `<div>${p.marker} ${p.seriesName}: <b>${p.value[1]}</b> A</div>`;
           }
           return html;
         },
