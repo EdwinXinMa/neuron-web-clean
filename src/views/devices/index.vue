@@ -448,7 +448,7 @@
         <a-spin :spinning="chartLoading">
           <div ref="chartRef" style="width: 100%; height: 320px;"></div>
           <div v-if="chartEmpty" class="chart-empty">暂无 DLM 历史数据</div>
-          <div v-if="!chartEmpty" class="mini-charts-row">
+          <!-- <div v-if="!chartEmpty" class="mini-charts-row">
             <div class="mini-chart-box">
               <div class="mini-chart-label">功率 (W)</div>
               <div ref="powerChartRef" style="width: 100%; height: 120px;"></div>
@@ -457,7 +457,7 @@
               <div class="mini-chart-label">电压 (V)</div>
               <div ref="voltageChartRef" style="width: 100%; height: 120px;"></div>
             </div>
-          </div>
+          </div> -->
         </a-spin>
       </div>
     </a-modal>
@@ -1322,14 +1322,11 @@
     }
     chartInstance = echarts.init(chartRef.value);
 
-    const times = points.map((p: any) => {
-      const d = new Date(p.time);
-      const hh = String(d.getHours()).padStart(2, '0');
-      const mm = String(d.getMinutes()).padStart(2, '0');
-      return chartRange.value === '7d'
-        ? `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`
-        : `${hh}:${mm}`;
-    });
+    const times = points.map((p: any) => p.time);
+    // x 轴固定范围：从 rangeMs 前到当前
+    const rangeMs: Record<string, number> = { '1h': 3600000, '6h': 21600000, '24h': 86400000, '7d': 604800000 };
+    const xMax = Date.now();
+    const xMin = xMax - (rangeMs[chartRange.value] || 86400000);
 
     const option = {
       tooltip: {
@@ -1354,9 +1351,16 @@
         bottom: 50,
       },
       xAxis: {
-        type: 'category',
-        data: times,
-        axisLabel: { color: '#94a3b8', fontSize: 11 },
+        type: 'time',
+        min: xMin,
+        max: xMax,
+        axisLabel: {
+          color: '#94a3b8',
+          fontSize: 11,
+          formatter: chartRange.value === '7d'
+            ? '{M}/{d} {HH}:{mm}'
+            : '{HH}:{mm}',
+        },
         axisLine: { lineStyle: { color: '#e2e8f0' } },
       },
       yAxis: {
@@ -1376,9 +1380,9 @@
           itemStyle: { color: '#f97316' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => chartPhase.value === 'total'
+          data: points.map((p: any) => [p.time, chartPhase.value === 'total'
             ? +((p.load_current_a || 0) + (p.load_current_b || 0) + (p.load_current_c || 0)).toFixed(1)
-            : p[`load_current_${chartPhase.value.toLowerCase()}`]),
+            : p[`load_current_${chartPhase.value.toLowerCase()}`]]),
         },
         {
           name: '充电用电',
@@ -1389,9 +1393,9 @@
           itemStyle: { color: '#22c55e' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => chartPhase.value === 'total'
+          data: points.map((p: any) => [p.time, chartPhase.value === 'total'
             ? +((p.total_charging_current_a || 0) + (p.total_charging_current_b || 0) + (p.total_charging_current_c || 0)).toFixed(1)
-            : p[`total_charging_current_${chartPhase.value.toLowerCase()}`]),
+            : p[`total_charging_current_${chartPhase.value.toLowerCase()}`]]),
         },
         {
           name: '断路器额定值',
@@ -1399,46 +1403,46 @@
           lineStyle: { color: '#ef4444', width: 2, type: 'dashed' },
           itemStyle: { color: '#ef4444' },
           symbol: 'none',
-          data: points.map((p: any) => p.breaker_rating),
+          data: points.map((p: any) => [p.time, p.breaker_rating]),
         },
       ],
     };
     chartInstance.setOption(option);
 
-    // 迷你图：功率
-    await nextTick();
-    if (powerChartRef.value) {
-      if (powerChartInstance) powerChartInstance.dispose();
-      powerChartInstance = echarts.init(powerChartRef.value);
-      powerChartInstance.setOption({
-        grid: { top: 10, left: 45, right: 15, bottom: 24 },
-        xAxis: { type: 'category', data: times, show: false },
-        yAxis: { type: 'value', axisLabel: { color: '#94a3b8', fontSize: 10 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
-        tooltip: { trigger: 'axis', formatter: (p: any) => p[0] ? `${p[0].axisValue}<br/>${p[0].value} W` : '' },
-        series: [{
-          type: 'line', data: points.map((p: any) => p.total_power),
-          lineStyle: { color: '#8b5cf6', width: 1.5 }, itemStyle: { color: '#8b5cf6' },
-          areaStyle: { color: 'rgba(139, 92, 246, 0.15)' }, symbol: 'none', smooth: true,
-        }],
-      });
-    }
+    // // 迷你图：功率
+    // await nextTick();
+    // if (powerChartRef.value) {
+    //   if (powerChartInstance) powerChartInstance.dispose();
+    //   powerChartInstance = echarts.init(powerChartRef.value);
+    //   powerChartInstance.setOption({
+    //     grid: { top: 10, left: 45, right: 15, bottom: 24 },
+    //     xAxis: { type: 'time', min: xMin, max: xMax, show: false },
+    //     yAxis: { type: 'value', axisLabel: { color: '#94a3b8', fontSize: 10 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+    //     tooltip: { trigger: 'axis', formatter: (p: any) => p[0] ? `${p[0].axisValue}<br/>${p[0].value} W` : '' },
+    //     series: [{
+    //       type: 'line', data: points.map((p: any) => [p.time, p.total_power]),
+    //       lineStyle: { color: '#8b5cf6', width: 1.5 }, itemStyle: { color: '#8b5cf6' },
+    //       areaStyle: { color: 'rgba(139, 92, 246, 0.15)' }, symbol: 'none', smooth: true,
+    //     }],
+    //   });
+    // }
 
-    // 迷你图：电压
-    if (voltageChartRef.value) {
-      if (voltageChartInstance) voltageChartInstance.dispose();
-      voltageChartInstance = echarts.init(voltageChartRef.value);
-      voltageChartInstance.setOption({
-        grid: { top: 10, left: 45, right: 15, bottom: 24 },
-        xAxis: { type: 'category', data: times, show: false },
-        yAxis: { type: 'value', min: 'dataMin', axisLabel: { color: '#94a3b8', fontSize: 10 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
-        tooltip: { trigger: 'axis', formatter: (p: any) => p[0] ? `${p[0].axisValue}<br/>${p[0].value} V` : '' },
-        series: [{
-          type: 'line', data: points.map((p: any) => p.voltage),
-          lineStyle: { color: '#0ea5e9', width: 1.5 }, itemStyle: { color: '#0ea5e9' },
-          areaStyle: { color: 'rgba(14, 165, 233, 0.15)' }, symbol: 'none', smooth: true,
-        }],
-      });
-    }
+    // // 迷你图：电压
+    // if (voltageChartRef.value) {
+    //   if (voltageChartInstance) voltageChartInstance.dispose();
+    //   voltageChartInstance = echarts.init(voltageChartRef.value);
+    //   voltageChartInstance.setOption({
+    //     grid: { top: 10, left: 45, right: 15, bottom: 24 },
+    //     xAxis: { type: 'time', min: xMin, max: xMax, show: false },
+    //     yAxis: { type: 'value', min: 'dataMin', axisLabel: { color: '#94a3b8', fontSize: 10 }, splitLine: { lineStyle: { color: '#f1f5f9' } } },
+    //     tooltip: { trigger: 'axis', formatter: (p: any) => p[0] ? `${p[0].axisValue}<br/>${p[0].value} V` : '' },
+    //     series: [{
+    //       type: 'line', data: points.map((p: any) => [p.time, p.voltage]),
+    //       lineStyle: { color: '#0ea5e9', width: 1.5 }, itemStyle: { color: '#0ea5e9' },
+    //       areaStyle: { color: 'rgba(14, 165, 233, 0.15)' }, symbol: 'none', smooth: true,
+    //     }],
+    //   });
+    // }
   }
 
   // ==================== Init from URL ====================
