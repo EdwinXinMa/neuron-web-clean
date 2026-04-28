@@ -268,7 +268,10 @@
 
           <!-- 下挂充电桩（跨两列） -->
           <div class="detail-section full">
-            <div class="section-title"><CarOutlined class="section-icon" /> 下挂充电桩</div>
+            <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+              <span><CarOutlined class="section-icon" /> 下挂充电桩</span>
+              <a-button v-if="selectedDevice.status === 'online' && onlinePiles.length > 1" type="link" size="small" class="action-btn" @click="openBatchWorkMode">批量设置模式</a-button>
+            </div>
             <div v-if="selectedDevice.chargers.length === 0" class="no-chargers">暂无下挂充电桩</div>
             <div v-for="pile in selectedDevice.chargers" :key="pile.sn"
               :class="['pile-card', {
@@ -282,7 +285,18 @@
                   <span class="pile-sn-badge" :style="{ background: pileGradient(pile.hasDlmData
                     ? (pile.connectStatus === 'offline' ? 'offline' : connStatusMap(pile.chargeEVStatus || 'Available'))
                     : pile.status) }">{{ pile.sn }}</span>
-                  <span v-if="pile.chargeVersion" class="pile-version">固件 {{ pile.chargeVersion }}</span>
+                  <a-select
+                    v-if="pile.hasDlmData && pile.connectStatus !== 'offline'"
+                    :value="pile.workMode !== 'unknown' ? pile.workMode : undefined"
+                    placeholder="暂未获取"
+                    size="small"
+                    class="workmode-select"
+                    @change="(val: string) => onWorkModeChange(pile.sn, val, pile.workMode)"
+                  >
+                    <a-select-option value="Plc">PLC</a-select-option>
+                    <a-select-option value="App">APP</a-select-option>
+                    <a-select-option value="Ocpp">OCPP</a-select-option>
+                  </a-select>
                   <!-- 有 DLMStatus 数据：用 connectStatus + charge_EVStatus -->
                   <template v-if="pile.hasDlmData">
                     <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? '在线' : '离线' }}</a-tag>
@@ -305,10 +319,9 @@
                   </a-tooltip> -->
                 </div>
               </div>
-              <!-- 充电信息（仅 DLMStatus 有数据且充电中显示） -->
-              <div v-if="pile.hasDlmData && pile.chargeEVStatus === 'Charging' && pile.connectStatus !== 'offline'" class="pile-charge-info">
-                <span v-if="pile.energy">电量 <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
-                <span v-if="pile.chargeMethod != null">模式 <strong>{{ pile.chargeMethod === 1 ? 'N3Lite' : 'iCharger' }}</strong></span>
+              <!-- 充电信息（充电中显示电量） -->
+              <div v-if="pile.hasDlmData && pile.chargeEVStatus === 'Charging' && pile.connectStatus !== 'offline' && pile.energy" class="pile-charge-info">
+                <span>电量 <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
               </div>
               <!-- 枪列表（桩离线时不显示） -->
               <div v-if="!(pile.hasDlmData && pile.connectStatus === 'offline')" class="pile-connectors">
@@ -419,6 +432,26 @@
       </a-button>
     </a-modal>
 
+    <!-- 批量设置工作模式 Modal -->
+    <a-modal
+      v-model:open="showBatchWorkMode"
+      title="批量设置工作模式"
+      :width="400"
+      @ok="confirmBatchWorkMode"
+      okText="确认"
+      cancelText="取消"
+    >
+      <div style="margin-bottom:12px; color:#64748b; font-size:13px;">将以下在线充电桩统一切换为：</div>
+      <a-select v-model:value="batchWorkModeValue" style="width:100%; margin-bottom:16px;">
+        <a-select-option value="Plc">PLC</a-select-option>
+        <a-select-option value="App">APP</a-select-option>
+        <a-select-option value="Ocpp">OCPP</a-select-option>
+      </a-select>
+      <div v-for="p in onlinePiles" :key="p.sn" style="padding:4px 0; font-size:13px; color:#cbd5e1;">
+        {{ p.sn }} <span style="color:#64748b; margin-left:8px;">当前: {{ workModeLabels[p.workMode] || '暂未获取' }}</span>
+      </div>
+    </a-modal>
+
     <!-- DLM 历史图表 Modal -->
     <a-modal
       v-model:open="showDlmChart"
@@ -467,7 +500,7 @@
 <script setup lang="ts">
   import { ref, computed, onMounted, watch, nextTick } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
-  import { message } from 'ant-design-vue';
+  import { message, Modal } from 'ant-design-vue';
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
@@ -517,7 +550,7 @@
               charger.connectStatus = dp.connectStatus;
               charger.charge_EVStatus = dp.charge_EVStatus;
               charger.energy = dp.energy;
-              charger.charge_Method = dp.charge_Method;
+              charger.workMode = dp.workMode;
               charger.charge_version = dp.charge_version;
               charger.snr = dp.snr;
               charger.atten = dp.atten;
@@ -802,7 +835,7 @@
         connectStatus: pile.connectStatus ?? null,
         chargeEVStatus: pile.charge_EVStatus ?? null,
         energy: pile.energy ?? null,
-        chargeMethod: pile.charge_Method ?? null,
+        workMode: pile.workMode ?? 'unknown',
         chargeVersion: pile.charge_version ?? null,
         snr: pile.snr ?? null,
         atten: pile.atten ?? null,
@@ -1251,6 +1284,54 @@
       setTimeout(() => loadDetail(selectedDevice.value!.sn), 500);
     } catch (e: any) {
       message.error('DLM 修改失败：' + (e.message || '网络错误'));
+    }
+  }
+
+  // ==================== 工作模式切换 ====================
+  const workModeLabels: Record<string, string> = { Plc: 'PLC', App: 'APP', Ocpp: 'OCPP' };
+  const onlinePiles = computed(() =>
+    (selectedDevice.value?.chargers || []).filter((p: any) => p.hasDlmData && p.connectStatus !== 'offline')
+  );
+
+  function onWorkModeChange(pileSn: string, newMode: string, oldMode: string) {
+    Modal.confirm({
+      title: '确认切换工作模式',
+      content: `确定将 ${pileSn} 的工作模式从 ${workModeLabels[oldMode] || '暂未获取'} 切换为 ${workModeLabels[newMode]}？`,
+      okText: '确认',
+      cancelText: '取消',
+      async onOk() {
+        try {
+          await http.post(`/device/${selectedSn.value}/workmode`, {
+            deviceList: [{ sn: pileSn, workMode: newMode }],
+          });
+          message.success(`工作模式已切换为 ${workModeLabels[newMode]}`);
+          setTimeout(() => loadDetail(selectedSn.value!), 500);
+        } catch (e: any) {
+          message.error('切换失败：' + (e.message || '网络错误'));
+        }
+      },
+    });
+  }
+
+  // 批量设置工作模式
+  const showBatchWorkMode = ref(false);
+  const batchWorkModeValue = ref('Plc');
+  function openBatchWorkMode() {
+    batchWorkModeValue.value = 'Plc';
+    showBatchWorkMode.value = true;
+  }
+  async function confirmBatchWorkMode() {
+    const piles = onlinePiles.value;
+    if (piles.length === 0) { return; }
+    try {
+      await http.post(`/device/${selectedSn.value}/workmode`, {
+        deviceList: piles.map((p: any) => ({ sn: p.sn, workMode: batchWorkModeValue.value })),
+      });
+      showBatchWorkMode.value = false;
+      message.success(`已批量切换为 ${workModeLabels[batchWorkModeValue.value]}`);
+      setTimeout(() => loadDetail(selectedSn.value!), 500);
+    } catch (e: any) {
+      message.error('批量切换失败：' + (e.message || '网络错误'));
     }
   }
 
@@ -2142,6 +2223,9 @@
     display: flex;
     gap: 20px;
     flex-wrap: wrap;
+  }
+  .workmode-select {
+    width: 95px;
   }
 
   .pile-firmware {
