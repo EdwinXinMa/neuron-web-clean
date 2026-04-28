@@ -285,18 +285,11 @@
                   <span class="pile-sn-badge" :style="{ background: pileGradient(pile.hasDlmData
                     ? (pile.connectStatus === 'offline' ? 'offline' : connStatusMap(pile.chargeEVStatus || 'Available'))
                     : pile.status) }">{{ pile.sn }}</span>
-                  <a-select
-                    v-if="pile.hasDlmData && pile.connectStatus !== 'offline'"
-                    :value="pile.workMode !== 'unknown' ? pile.workMode : undefined"
-                    placeholder="暂未获取"
-                    size="small"
-                    class="workmode-select"
-                    @change="(val: string) => onWorkModeChange(pile.sn, val, pile.workMode)"
-                  >
-                    <a-select-option value="Plc">PLC</a-select-option>
-                    <a-select-option value="App">APP</a-select-option>
-                    <a-select-option value="Ocpp">OCPP</a-select-option>
-                  </a-select>
+                  <span v-if="pile.hasDlmData && pile.connectStatus !== 'offline'" class="workmode-badge" @click="onWorkModeClick(pile)">
+                    <span class="workmode-prefix">MODE</span>
+                    <span class="workmode-value">{{ workModeLabels[pile.workMode] || '---' }}</span>
+                    <SwapOutlined class="workmode-arrow" />
+                  </span>
                   <!-- 有 DLMStatus 数据：用 connectStatus + charge_EVStatus -->
                   <template v-if="pile.hasDlmData">
                     <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? '在线' : '离线' }}</a-tag>
@@ -432,6 +425,25 @@
       </a-button>
     </a-modal>
 
+    <!-- 单台切换工作模式 Modal -->
+    <a-modal
+      v-model:open="showWorkModeModal"
+      title="切换工作模式"
+      :width="360"
+      @ok="confirmWorkModeChange"
+      okText="确认"
+      cancelText="取消"
+      :okButtonProps="{ disabled: workModeNewValue === workModeOldValue }"
+      style="top: 30%;"
+    >
+      <div style="margin-bottom:16px; font-size:13px; color:#64748b;">{{ workModePileSn }}</div>
+      <a-radio-group v-model:value="workModeNewValue" button-style="solid" size="small">
+        <a-radio-button value="Plc">PLC</a-radio-button>
+        <a-radio-button value="App">APP</a-radio-button>
+        <a-radio-button value="Ocpp">OCPP</a-radio-button>
+      </a-radio-group>
+    </a-modal>
+
     <!-- 批量设置工作模式 Modal -->
     <a-modal
       v-model:open="showBatchWorkMode"
@@ -504,7 +516,7 @@
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
-  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined } from '@ant-design/icons-vue';
+  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined } from '@ant-design/icons-vue';
 
   // 监听设备事件，自动刷新列表
   useDeviceEvents((event) => {
@@ -1293,24 +1305,34 @@
     (selectedDevice.value?.chargers || []).filter((p: any) => p.hasDlmData && p.connectStatus !== 'offline')
   );
 
-  function onWorkModeChange(pileSn: string, newMode: string, oldMode: string) {
-    Modal.confirm({
-      title: '确认切换工作模式',
-      content: `确定将 ${pileSn} 的工作模式从 ${workModeLabels[oldMode] || '暂未获取'} 切换为 ${workModeLabels[newMode]}？`,
-      okText: '确认',
-      cancelText: '取消',
-      async onOk() {
-        try {
-          await http.post(`/device/${selectedSn.value}/workmode`, {
-            deviceList: [{ sn: pileSn, workMode: newMode }],
-          });
-          message.success(`工作模式已切换为 ${workModeLabels[newMode]}`);
-          setTimeout(() => loadDetail(selectedSn.value!), 500);
-        } catch (e: any) {
-          message.error('切换失败：' + (e.message || '网络错误'));
-        }
-      },
-    });
+  // 单台切换：点击 badge 弹出选择弹窗
+  const showWorkModeModal = ref(false);
+  const workModePileSn = ref('');
+  const workModeOldValue = ref('');
+  const workModeNewValue = ref('Plc');
+
+  function onWorkModeClick(pile: any) {
+    workModePileSn.value = pile.sn;
+    workModeOldValue.value = pile.workMode;
+    workModeNewValue.value = pile.workMode !== 'unknown' ? pile.workMode : 'Plc';
+    showWorkModeModal.value = true;
+  }
+
+  async function confirmWorkModeChange() {
+    if (workModeNewValue.value === workModeOldValue.value) {
+      showWorkModeModal.value = false;
+      return;
+    }
+    try {
+      await http.post(`/device/${selectedSn.value}/workmode`, {
+        deviceList: [{ sn: workModePileSn.value, workMode: workModeNewValue.value }],
+      });
+      showWorkModeModal.value = false;
+      message.success(`工作模式已切换为 ${workModeLabels[workModeNewValue.value]}`);
+      setTimeout(() => loadDetail(selectedSn.value!), 500);
+    } catch (e: any) {
+      message.error('切换失败：' + (e.message || '网络错误'));
+    }
   }
 
   // 批量设置工作模式
@@ -2224,8 +2246,38 @@
     gap: 20px;
     flex-wrap: wrap;
   }
-  .workmode-select {
-    width: 95px;
+  .workmode-badge {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, #188a7e, #2dd4bf);
+    border-radius: 10px;
+    padding: 2px 8px;
+    cursor: pointer;
+    gap: 2px;
+    transition: box-shadow 0.2s;
+  }
+  .workmode-badge:hover {
+    box-shadow: 0 0 6px rgba(45, 212, 191, 0.5);
+  }
+  .workmode-prefix {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transform: scale(0.8);
+    transform-origin: left center;
+    display: inline-block;
+    margin-right: -6px;
+  }
+  .workmode-value {
+    font-size: 11px;
+    color: #fff;
+    font-weight: 700;
+  }
+  .workmode-arrow {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-left: 2px;
   }
 
   .pile-firmware {
