@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined } from '@ant-design/icons-vue'
+import { GlobalOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import { useDeviceEvents } from '@/composables/useDeviceEvents'
 import { toFileUrl } from '@/utils/file'
+import { setLang } from '@/i18n'
+import type { LangType } from '@/i18n'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -48,28 +52,31 @@ async function loadAlertBadge() {
   } catch { /* ignore */ }
 }
 
-const username = computed(() => userInfo.value.realname || userInfo.value.username || '用户')
+const username = computed(() => userInfo.value.realname || userInfo.value.username || '—')
 
-const navItems = [
-  { path: '/overview', label: '总览' },
-  { path: '/devices', label: '设备' },
-  { path: '/alerts', label: '告警', badgeKey: 'alert' },
-  { path: '/oplog', label: '操作日志' },
-  { path: '/management', label: '管理中心' },
-]
+const navItems = computed(() => [
+  { path: '/overview', label: t('nav.overview') },
+  { path: '/devices', label: t('nav.devices') },
+  { path: '/alerts', label: t('nav.alerts'), badgeKey: 'alert' },
+  { path: '/oplog', label: t('nav.oplog') },
+  { path: '/management', label: t('nav.management') },
+])
+
 const avatar = computed(() => toFileUrl(userInfo.value.avatar))
 const isAdmin = computed(() => userInfo.value.role === 'admin' || userInfo.value.role === 1)
 const roleLabel = computed(() => {
   const role = userInfo.value.role
-  if (!role && role !== 0) return ''
-  if (role === 'admin' || role === 1) return '管理员'
-  if (role === 'operator' || role === 2) return '运维'
+  if (!role && role !== 0) {
+    return ''
+  }
+  if (role === 'admin' || role === 1) {
+    return t('user.admin')
+  }
+  if (role === 'operator' || role === 2) {
+    return t('user.operator')
+  }
   return ''
 })
-
-function onMenuClick({ key }: { key: string }) {
-  router.push(key)
-}
 
 // 头像上传
 const avatarInputRef = ref<HTMLInputElement>()
@@ -80,26 +87,30 @@ function triggerAvatarUpload() {
 
 async function onAvatarSelected(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
+  if (!file) {
+    return
+  }
   try {
-    // 上传到 MinIO（neuron-avatar bucket）
     const formData = new FormData()
     formData.append('file', file)
     formData.append('biz', 'avatar')
     formData.append('bucket', 'neuron-avatar')
     const uploadRes: any = await http.post('/sys/upload/uploadMinio', formData)
     const avatarUrl = uploadRes.result || uploadRes.message || ''
-    if (!avatarUrl) { message.error('上传失败'); return }
-    // 更新头像
+    if (!avatarUrl) {
+      message.error(t('avatar.uploadFail'))
+      return
+    }
     await http.put('/sys/user/updateAvatar', { avatar: avatarUrl })
     userInfo.value.avatar = avatarUrl
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
-    message.success('头像已更新')
+    message.success(t('avatar.updated'))
   } catch {
-    message.error('头像上传失败')
+    message.error(t('avatar.uploadError'))
   }
-  // 清空 input 以便重复选择同一文件
-  if (avatarInputRef.value) avatarInputRef.value.value = ''
+  if (avatarInputRef.value) {
+    avatarInputRef.value.value = ''
+  }
 }
 
 function handleLogout() {
@@ -122,23 +133,37 @@ function openPwdModal() {
 
 async function handleChangePwd() {
   if (!pwdForm.oldpassword || !pwdForm.password || !pwdForm.confirmpassword) {
-    message.warning('请填写所有密码字段')
+    message.warning(t('changePwd.allRequired'))
     return
   }
   if (pwdForm.password !== pwdForm.confirmpassword) {
-    message.warning('两次密码不一致')
+    message.warning(t('changePwd.mismatch'))
     return
   }
   pwdLoading.value = true
   try {
     await http.put('/sys/user/changePassword', { ...pwdForm })
-    message.success('密码修改成功，请重新登录')
+    message.success(t('changePwd.success'))
     showPwdModal.value = false
     setTimeout(() => handleLogout(), 1200)
   } catch {
+    // 错误已由 http 拦截器处理
   } finally {
     pwdLoading.value = false
   }
+}
+
+// 语言切换
+const langOptions: { key: LangType; label: string }[] = [
+  { key: 'zh', label: '简体中文' },
+  { key: 'en', label: 'English' },
+  { key: 'tw', label: '繁體中文' },
+  { key: 'es', label: 'Español' },
+  { key: 'pt', label: 'Português' },
+]
+
+function handleLangChange(lang: LangType) {
+  setLang(lang)
 }
 </script>
 
@@ -160,26 +185,48 @@ async function handleChangePwd() {
           <span v-if="route.path === item.path" class="nav-bubble"></span>
         </div>
       </nav>
-      <a-dropdown>
-        <div class="nav-user">
-          <a-tooltip title="点击更换头像">
-            <a-avatar v-if="avatar" :src="avatar" :size="30" class="nav-avatar-clickable" @click.stop="triggerAvatarUpload" />
-            <a-avatar v-else :size="30" class="nav-avatar nav-avatar-clickable" @click.stop="triggerAvatarUpload">{{ username.charAt(0) }}</a-avatar>
-          </a-tooltip>
-          <span class="nav-username">{{ username }}</span>
-          <span style="color: #64748b; font-size: 12px;">▾</span>
-        </div>
-        <template #overlay>
-          <a-menu style="background: #fff; border: 1px solid #e2e8f0;">
-            <div v-if="roleLabel" style="padding: 5px 12px; font-size: 12px; color: #94a3b8;">{{ roleLabel }}</div>
-            <a-menu-divider v-if="roleLabel" style="border-color: #e2e8f0;" />
-            <a-menu-item v-if="isAdmin" @click="$router.push('/accounts')" style="color: #1a1a2e;">账号管理</a-menu-item>
-            <a-menu-item @click="openPwdModal" style="color: #1a1a2e;">修改密码</a-menu-item>
-            <a-menu-divider style="border-color: #e2e8f0;" />
-            <a-menu-item @click="handleLogout" style="color: #ff4757;">退出登录</a-menu-item>
-          </a-menu>
-        </template>
-      </a-dropdown>
+      <div class="nav-right">
+        <!-- 语言切换 -->
+        <a-dropdown>
+          <div class="nav-lang-btn">
+            <GlobalOutlined style="font-size: 16px;" />
+          </div>
+          <template #overlay>
+            <a-menu style="background: #fff; border: 1px solid #e2e8f0;">
+              <a-menu-item
+                v-for="opt in langOptions"
+                :key="opt.key"
+                style="color: #1a1a2e;"
+                @click="handleLangChange(opt.key)"
+              >
+                {{ opt.label }}
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
+
+        <!-- 用户菜单 -->
+        <a-dropdown>
+          <div class="nav-user">
+            <a-tooltip :title="t('user.clickToChangeAvatar')">
+              <a-avatar v-if="avatar" :src="avatar" :size="30" class="nav-avatar-clickable" @click.stop="triggerAvatarUpload" />
+              <a-avatar v-else :size="30" class="nav-avatar nav-avatar-clickable" @click.stop="triggerAvatarUpload">{{ username.charAt(0) }}</a-avatar>
+            </a-tooltip>
+            <span class="nav-username">{{ username }}</span>
+            <span style="color: #64748b; font-size: 12px;">▾</span>
+          </div>
+          <template #overlay>
+            <a-menu style="background: #fff; border: 1px solid #e2e8f0;">
+              <div v-if="roleLabel" style="padding: 5px 12px; font-size: 12px; color: #94a3b8;">{{ roleLabel }}</div>
+              <a-menu-divider v-if="roleLabel" style="border-color: #e2e8f0;" />
+              <a-menu-item v-if="isAdmin" @click="$router.push('/accounts')" style="color: #1a1a2e;">{{ t('user.accounts') }}</a-menu-item>
+              <a-menu-item @click="openPwdModal" style="color: #1a1a2e;">{{ t('user.changePassword') }}</a-menu-item>
+              <a-menu-divider style="border-color: #e2e8f0;" />
+              <a-menu-item @click="handleLogout" style="color: #ff4757;">{{ t('user.logout') }}</a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
+      </div>
       <input ref="avatarInputRef" type="file" accept="image/*" style="display:none" @change="onAvatarSelected" />
     </header>
     <a-layout-content style="background: #f5f7fa; flex: 1; overflow: auto;">
@@ -190,22 +237,22 @@ async function handleChangePwd() {
   <!-- 修改密码 Modal -->
   <a-modal
     v-model:open="showPwdModal"
-    title="修改密码"
-    ok-text="确认修改"
-    cancel-text="取消"
+    :title="t('changePwd.title')"
+    :ok-text="t('changePwd.confirm')"
+    :cancel-text="t('changePwd.cancel')"
     :confirm-loading="pwdLoading"
     @ok="handleChangePwd"
   >
     <div style="padding: 8px 0;">
       <a-form layout="vertical">
-        <a-form-item label="当前密码">
-          <a-input-password v-model:value="pwdForm.oldpassword" placeholder="请输入当前密码" />
+        <a-form-item :label="t('changePwd.currentPwd')">
+          <a-input-password v-model:value="pwdForm.oldpassword" :placeholder="t('changePwd.currentPwdPlaceholder')" />
         </a-form-item>
-        <a-form-item label="新密码">
-          <a-input-password v-model:value="pwdForm.password" placeholder="请输入新密码" />
+        <a-form-item :label="t('changePwd.newPwd')">
+          <a-input-password v-model:value="pwdForm.password" :placeholder="t('changePwd.newPwdPlaceholder')" />
         </a-form-item>
-        <a-form-item label="确认新密码">
-          <a-input-password v-model:value="pwdForm.confirmpassword" placeholder="请再次输入新密码" />
+        <a-form-item :label="t('changePwd.confirmPwd')">
+          <a-input-password v-model:value="pwdForm.confirmpassword" :placeholder="t('changePwd.confirmPwdPlaceholder')" />
         </a-form-item>
       </a-form>
     </div>
@@ -274,7 +321,6 @@ async function handleChangePwd() {
   transform: translateY(-1px);
 }
 
-/* 下划线 */
 .nav-bubble {
   position: absolute;
   bottom: -1px;
@@ -303,6 +349,29 @@ async function handleChangePwd() {
 @keyframes bubbleIn {
   from { width: 0; opacity: 0; }
   to { width: 60%; opacity: 1; }
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-lang-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-lang-btn:hover {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
 }
 
 .nav-user {
@@ -338,11 +407,5 @@ async function handleChangePwd() {
   font-size: 14px;
   font-weight: 500;
   color: #1a1a2e;
-}
-
-.nav-avatar {
-  background: linear-gradient(135deg, #0e7490, #3b82f6);
-  font-size: 14px;
-  font-weight: 700;
 }
 </style>

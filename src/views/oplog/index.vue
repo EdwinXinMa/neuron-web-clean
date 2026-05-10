@@ -1,6 +1,6 @@
 <template>
   <div class="oplog-screen">
-    <!-- 筛选栏（一行） -->
+    <!-- 筛选栏 -->
     <div class="filter-bar">
       <div class="filter-group">
         <a-button
@@ -15,14 +15,14 @@
       <div class="filter-right">
         <a-input-search
           v-model:value="snKeyword"
-          placeholder="搜索设备序列号"
+          :placeholder="t('oplog.searchSn')"
           class="sn-search dark-input-search"
           allow-clear
         />
         <a-range-picker
           v-model:value="dateRange"
           class="dark-picker"
-          :placeholder="['开始时间', '结束时间']"
+          :placeholder="[t('common.startTime'), t('common.endTime')]"
         />
       </div>
     </div>
@@ -32,7 +32,13 @@
       <a-table
         :columns="columns"
         :data-source="filteredLogs"
-        :pagination="{ current: opPage, pageSize: 10, total: opTotal, showTotal: (t: number) => '共 ' + t + ' 条', onChange: onPageChange }"
+        :pagination="{
+          current: opPage,
+          pageSize: 10,
+          total: opTotal,
+          showTotal: (n: number) => t('common.totalRecords', { n }),
+          onChange: onPageChange
+        }"
         row-key="time"
         size="middle"
         class="dark-table"
@@ -49,7 +55,7 @@
           </template>
           <template v-if="column.dataIndex === 'type'">
             <span class="type-cell">
-              <span :class="['type-dot', typeDotClass(record.type)]"></span>
+              <span :class="['type-dot', typeDotClass(record.typeKey)]"></span>
               <span class="type-text">{{ record.type }}</span>
             </span>
           </template>
@@ -57,8 +63,8 @@
             <span class="content-text">{{ record.content }}</span>
           </template>
           <template v-if="column.dataIndex === 'result'">
-            <span v-if="record.result === 'success'" class="result-success">✅ 成功</span>
-            <span v-else class="result-fail">❌ 失败</span>
+            <span v-if="record.result === 'success'" class="result-success">{{ t('oplog.success') }}</span>
+            <span v-else class="result-fail">{{ t('oplog.fail') }}</span>
           </template>
         </template>
       </a-table>
@@ -69,50 +75,50 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import type { Dayjs } from 'dayjs'
 
+const { t } = useI18n()
 const router = useRouter()
 
 const activeType = ref<string>('all')
 const snKeyword = ref<string>('')
 const dateRange = ref<[Dayjs, Dayjs] | null>(null)
 
-const typeOptions = [
-  { label: '全部', value: 'all' },
-  { label: 'OTA 升级', value: 'OTA_UPGRADE' },
-  { label: 'DLM 修改', value: 'DLM_CONFIG' },
-  { label: '远程重启', value: 'REMOTE_REBOOT' },
-  { label: '远程重置', value: 'REMOTE_RESET' },
-]
+const typeOptions = computed(() => [
+  { label: t('oplog.typeAll'), value: 'all' },
+  { label: t('oplog.typeOta'), value: 'OTA_UPGRADE' },
+  { label: t('oplog.typeDlm'), value: 'DLM_CONFIG' },
+  { label: t('oplog.typeReboot'), value: 'REMOTE_REBOOT' },
+  { label: t('oplog.typeReset'), value: 'REMOTE_RESET' },
+])
 
-// 不同操作类型对应的点颜色 class
-function typeDotClass(type: string): string {
-  switch (type) {
-    case 'OTA 升级': return 'dot-ota'
-    case 'DLM 修改': return 'dot-dlm'
-    case '远程重启': return 'dot-reboot'
-    case '远程重置': return 'dot-reset'
+function typeDotClass(typeKey: string): string {
+  switch (typeKey) {
+    case 'OTA_UPGRADE': return 'dot-ota'
+    case 'DLM_CONFIG': return 'dot-dlm'
+    case 'REMOTE_REBOOT': return 'dot-reboot'
+    case 'REMOTE_RESET': return 'dot-reset'
     default: return 'dot-default'
   }
 }
 
-const columns = [
+const columns = computed(() => [
   {
-    title: '操作时间',
+    title: t('oplog.colTime'),
     dataIndex: 'time',
     width: 180,
     defaultSortOrder: 'descend' as const,
-    sorter: (a: OpLog, b: OpLog) => a.time.localeCompare(b.time),
+    sorter: (a: any, b: any) => a.time.localeCompare(b.time),
   },
-  { title: '操作人', dataIndex: 'user', width: 90 },
-  { title: '设备序列号', dataIndex: 'device', width: 220 },
-  { title: '操作类型', dataIndex: 'type', width: 110 },
-  { title: '操作内容', dataIndex: 'content' },
-  { title: '结果', dataIndex: 'result', width: 90 },
-]
+  { title: t('oplog.colUser'), dataIndex: 'user', width: 90 },
+  { title: t('oplog.colDevice'), dataIndex: 'device', width: 220 },
+  { title: t('oplog.colType'), dataIndex: 'type', width: 130 },
+  { title: t('oplog.colContent'), dataIndex: 'content' },
+  { title: t('oplog.colResult'), dataIndex: 'result', width: 90 },
+])
 
-// 操作日志真实数据
 const opLogs = ref<any[]>([])
 const opTotal = ref(0)
 const opLoading = ref(false)
@@ -130,32 +136,31 @@ async function loadOpLogs() {
     }
     const res: any = await http.get('/oplog/list', { params })
     const data = res.result || res
-    // 适配字段
     opLogs.value = (data.records || []).map((l: any) => ({
       time: l.opTime || l.createTime,
       user: l.opUser || '-',
       device: l.deviceSn || '-',
+      typeKey: l.opType,
       type: opTypeLabel(l.opType),
       content: l.opContent || '-',
       result: l.opResult === 'SUCCESS' ? 'success' : 'fail',
     }))
     opTotal.value = data.total || 0
   } catch (e) {
-    // fallback to empty
     opLogs.value = []
   } finally {
     opLoading.value = false
   }
 }
 
-function opTypeLabel(t: string): string {
+function opTypeLabel(key: string): string {
   const map: Record<string, string> = {
-    OTA_UPGRADE: 'OTA 升级',
-    DLM_CONFIG: 'DLM 修改',
-    REMOTE_REBOOT: '远程重启',
-    REMOTE_RESET: '远程重置',
+    OTA_UPGRADE: t('oplog.typeOta'),
+    DLM_CONFIG: t('oplog.typeDlm'),
+    REMOTE_REBOOT: t('oplog.typeReboot'),
+    REMOTE_RESET: t('oplog.typeReset'),
   }
-  return map[t] || t || '其他'
+  return map[key] || key || t('oplog.typeOther')
 }
 
 function onPageChange(p: number) {
@@ -166,7 +171,6 @@ function onPageChange(p: number) {
 onMounted(() => loadOpLogs())
 watch([activeType, snKeyword, dateRange], () => { opPage.value = 1; loadOpLogs() })
 
-// 过滤由后端处理，直接使用 opLogs
 const filteredLogs = computed(() => opLogs.value)
 
 function goDevice(sn: string) {
@@ -185,7 +189,6 @@ function goDevice(sn: string) {
   flex-direction: column;
 }
 
-/* ── 筛选栏 ── */
 .filter-bar {
   display: flex;
   align-items: center;
@@ -231,36 +234,19 @@ function goDevice(sn: string) {
   color: #1a1a2e !important;
 }
 
-.sn-search {
-  width: 260px;
-}
+.sn-search { width: 260px; }
 
-/* ── 表格单元格内容 ── */
-.time-text {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.user-text {
-  color: #1a1a2e;
-}
+.time-text { color: #94a3b8; font-size: 13px; }
+.user-text { color: #1a1a2e; }
 
 .sn-link {
   color: #3b82f6;
   cursor: pointer;
   transition: opacity 0.2s;
 }
+.sn-link:hover { opacity: 0.8; text-decoration: underline; }
 
-.sn-link:hover {
-  opacity: 0.8;
-  text-decoration: underline;
-}
-
-.type-cell {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+.type-cell { display: flex; align-items: center; gap: 6px; }
 
 .type-dot {
   display: inline-block;
@@ -276,26 +262,11 @@ function goDevice(sn: string) {
 .dot-reset  { background: #f87171; }
 .dot-default{ background: #64748b; }
 
-.type-text {
-  color: #1a1a2e;
-}
+.type-text { color: #1a1a2e; }
+.content-text { color: #94a3b8; font-size: 13px; }
+.result-success { color: #2d9d78; font-size: 13px; }
+.result-fail { color: #f87171; font-size: 13px; }
 
-.content-text {
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.result-success {
-  color: #2d9d78;
-  font-size: 13px;
-}
-
-.result-fail {
-  color: #f87171;
-  font-size: 13px;
-}
-
-/* ── 表格容器 ── */
 .table-wrapper {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -305,137 +276,47 @@ function goDevice(sn: string) {
   overflow: hidden;
 }
 
-/* ── Ant Design 表格覆盖 ── */
-:deep(.dark-table) {
-  background: transparent;
-}
-
-:deep(.dark-table .ant-table) {
-  background: #fff;
-  color: #1a1a2e;
-}
-
+:deep(.dark-table) { background: transparent; }
+:deep(.dark-table .ant-table) { background: #fff; color: #1a1a2e; }
 :deep(.dark-table .ant-table-thead > tr > th) {
-  background: #fafbfc !important;
-  color: #64748b !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  font-weight: 500;
+  background: #fafbfc !important; color: #64748b !important;
+  border-bottom: 1px solid #e2e8f0 !important; font-weight: 500;
 }
-
-:deep(.dark-table .ant-table-thead > tr > th::before) {
-  display: none !important;
-}
-
+:deep(.dark-table .ant-table-thead > tr > th::before) { display: none !important; }
 :deep(.dark-table .ant-table-tbody > tr > td) {
-  background: #fff !important;
-  color: #1a1a2e !important;
+  background: #fff !important; color: #1a1a2e !important;
   border-bottom: 1px solid #f0f0f0 !important;
-  padding-top: 16.5px !important;
-  padding-bottom: 16.5px !important;
+  padding-top: 16.5px !important; padding-bottom: 16.5px !important;
 }
-
-:deep(.dark-table .ant-table-tbody > tr:hover > td) {
-  background: #f5f7fa !important;
-}
-
-:deep(.dark-table .ant-table-cell-row-hover) {
-  background: #f5f7fa !important;
-}
-
-/* 分页器 */
-:deep(.dark-table .ant-pagination) {
-  color: #64748b;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item) {
-  background: #fff;
-  border-color: #e2e8f0;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item a) {
-  color: #64748b;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item-active) {
-  border-color: #3b82f6;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item-active a) {
-  color: #3b82f6;
-}
-
+:deep(.dark-table .ant-table-tbody > tr:hover > td) { background: #f5f7fa !important; }
+:deep(.dark-table .ant-table-cell-row-hover) { background: #f5f7fa !important; }
+:deep(.dark-table .ant-pagination) { color: #64748b; }
+:deep(.dark-table .ant-pagination .ant-pagination-item) { background: #fff; border-color: #e2e8f0; }
+:deep(.dark-table .ant-pagination .ant-pagination-item a) { color: #64748b; }
+:deep(.dark-table .ant-pagination .ant-pagination-item-active) { border-color: #3b82f6; }
+:deep(.dark-table .ant-pagination .ant-pagination-item-active a) { color: #3b82f6; }
 :deep(.dark-table .ant-pagination .ant-pagination-prev .ant-pagination-item-link),
 :deep(.dark-table .ant-pagination .ant-pagination-next .ant-pagination-item-link) {
-  color: #64748b;
-  background: #fff;
-  border-color: #e2e8f0;
+  color: #64748b; background: #fff; border-color: #e2e8f0;
 }
-
-:deep(.dark-table .ant-table-column-sorter) {
-  color: #94a3b8;
-}
-
+:deep(.dark-table .ant-table-column-sorter) { color: #94a3b8; }
 :deep(.dark-table .ant-select-selector) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-  color: #64748b !important;
+  background: #fff !important; border-color: #e2e8f0 !important; color: #64748b !important;
 }
-
-:deep(.dark-table .ant-pagination-total-text) {
-  color: #94a3b8;
-}
-
+:deep(.dark-table .ant-pagination-total-text) { color: #94a3b8; }
 :deep(.dark-table .ant-table-empty .ant-table-placeholder) {
-  background: #fff !important;
-  color: #94a3b8 !important;
+  background: #fff !important; color: #94a3b8 !important;
 }
 
-/* ── 输入框覆盖（移除暗色） ── */
-:deep(.dark-input-search .ant-input) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-  color: #1a1a2e !important;
-}
+:deep(.dark-input-search .ant-input) { background: #fff !important; border-color: #e2e8f0 !important; color: #1a1a2e !important; }
+:deep(.dark-input-search .ant-input::placeholder) { color: #94a3b8 !important; }
+:deep(.dark-input-search .ant-input-search-button) { background: #fff !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; }
+:deep(.dark-input-search .ant-input-clear-icon) { color: #94a3b8 !important; }
+:deep(.dark-input-search .ant-input-affix-wrapper) { background: #fff !important; border-color: #e2e8f0 !important; }
 
-:deep(.dark-input-search .ant-input::placeholder) {
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-input-search .ant-input-search-button) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-input-search .ant-input-clear-icon) {
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-input-search .ant-input-affix-wrapper) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-}
-
-/* ── 日期选择器 ── */
-:deep(.dark-picker) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-}
-
-:deep(.dark-picker input) {
-  color: #1a1a2e !important;
-}
-
-:deep(.dark-picker .ant-picker-suffix) {
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-picker .ant-picker-separator) {
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-picker .ant-picker-clear) {
-  background: #fff !important;
-  color: #94a3b8 !important;
-}
+:deep(.dark-picker) { background: #fff !important; border-color: #e2e8f0 !important; }
+:deep(.dark-picker input) { color: #1a1a2e !important; }
+:deep(.dark-picker .ant-picker-suffix) { color: #94a3b8 !important; }
+:deep(.dark-picker .ant-picker-separator) { color: #94a3b8 !important; }
+:deep(.dark-picker .ant-picker-clear) { background: #fff !important; color: #94a3b8 !important; }
 </style>

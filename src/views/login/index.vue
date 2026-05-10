@@ -2,10 +2,12 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
 import { login } from '../../api/sys/user'
 import AnimatedCharacters from '../../components/AnimatedCharacters.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const loading = ref(false)
 const isTyping = ref(false)
@@ -26,7 +28,7 @@ function onInput() {
 
 async function handleLogin() {
   if (!form.username || !form.password) {
-    message.warning('请输入用户名和密码')
+    message.warning(t('login.enterCredentials'))
     return
   }
   loading.value = true
@@ -37,7 +39,7 @@ async function handleLogin() {
     const userInfo = result.userInfo || {}
     localStorage.setItem('token', token)
     localStorage.setItem('userInfo', JSON.stringify(userInfo))
-    message.success('登录成功，欢迎 ' + (userInfo.realname || form.username))
+    message.success(t('login.welcome', { name: userInfo.realname || form.username }))
     router.push('/overview')
   } catch {
     loginFailed.value = true
@@ -70,7 +72,7 @@ async function handleLogin() {
           <a-form-item>
             <a-input
               v-model:value="form.username"
-              placeholder="用户名"
+              :placeholder="t('login.username')"
               size="large"
               @input="onInput"
               @pressEnter="handleLogin"
@@ -81,7 +83,7 @@ async function handleLogin() {
           <a-form-item>
             <a-input-password
               v-model:value="form.password"
-              placeholder="密码"
+              :placeholder="t('login.password')"
               size="large"
               :visibilityToggle="true"
               @input="onInput"
@@ -93,7 +95,7 @@ async function handleLogin() {
           </a-form-item>
           <a-form-item>
             <a-button type="primary" :loading="loading" block size="large" @click="handleLogin">
-              登录
+              {{ t('login.loginBtn') }}
             </a-button>
           </a-form-item>
         </a-form>

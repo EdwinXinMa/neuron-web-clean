@@ -24,9 +24,9 @@
       <div class="map-panel">
         <div ref="mapRef" class="map-container"></div>
         <div class="map-legend">
-          <span class="legend-item"><span class="legend-dot legend-online"></span>在线</span>
-          <span class="legend-item"><span class="legend-dot legend-offline"></span>离线</span>
-          <span class="legend-item"><span class="legend-dot legend-fault"></span>故障</span>
+          <span class="legend-item"><span class="legend-dot legend-online"></span>{{ t('common.online') }}</span>
+          <span class="legend-item"><span class="legend-dot legend-offline"></span>{{ t('common.offline') }}</span>
+          <span class="legend-item"><span class="legend-dot legend-fault"></span>{{ t('common.fault') }}</span>
         </div>
         <!-- 地图点脉冲 SVG 滤镜 -->
         <svg width="0" height="0" style="position:absolute">
@@ -41,22 +41,22 @@
       <div class="right-column">
         <div class="online-rate-panel">
           <div class="rate-panel-header">
-            <span class="rate-panel-title">今日统计</span>
+            <span class="rate-panel-title">{{ t('overview.todayStats') }}</span>
             <span class="rate-panel-active" v-if="counts.activeToday > 0">
-              <span class="active-dot"></span>活跃 {{ counts.activeToday }} 台
+              <span class="active-dot"></span>{{ t('overview.activeDevices', { n: counts.activeToday }) }}
             </span>
-            <span class="rate-panel-inactive" v-else>暂无活跃设备</span>
+            <span class="rate-panel-inactive" v-else>{{ t('overview.noActiveDevices') }}</span>
           </div>
           <div class="pie-wrapper">
             <div ref="pieRef" class="pie-container"></div>
             <div class="pie-center-label">
               <template v-if="counts.online > 0">
                 <div class="pie-center-value">{{ onlineRate }}<span class="pie-center-unit">%</span></div>
-                <div class="pie-center-text">在线率</div>
+                <div class="pie-center-text">{{ t('overview.onlineRate') }}</div>
               </template>
               <template v-else>
                 <div class="pie-center-value" style="color: #cbd5e1;">- -</div>
-                <div class="pie-center-text">在线率</div>
+                <div class="pie-center-text">{{ t('overview.onlineRate') }}</div>
               </template>
             </div>
           </div>
@@ -64,8 +64,8 @@
         <div class="alert-panel">
           <div class="alert-header">
             <span class="blink-dot"></span>
-            <span class="alert-title">今日告警</span>
-            <span class="alert-count" v-if="recentAlerts.length">{{ recentAlerts.length }} 条</span>
+            <span class="alert-title">{{ t('overview.todayAlerts') }}</span>
+            <span class="alert-count" v-if="recentAlerts.length">{{ t('overview.alertCount', { n: recentAlerts.length }) }}</span>
           </div>
           <div v-if="recentAlerts.length" class="alert-scroll-outer">
             <div class="alert-scroll-wrapper" ref="alertScrollRef">
@@ -95,7 +95,7 @@
               <line x1="11" y1="18" x2="22" y2="18" stroke="#e2e8f0" stroke-width="1.5" stroke-linecap="round"/>
               <line x1="11" y1="24" x2="18" y2="24" stroke="#e2e8f0" stroke-width="1.5" stroke-linecap="round"/>
             </svg>
-            <div class="alert-empty-text">暂无告警</div>
+            <div class="alert-empty-text">{{ t('overview.noAlerts') }}</div>
           </div>
         </div>
       </div>
@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getDeviceStats, getDeviceMapData } from '@/api/device';
@@ -113,6 +114,7 @@ import { ClusterOutlined, CheckCircleOutlined, StopOutlined, WarningOutlined, Lo
 import http from '@/api/http';
 import { useDeviceEvents } from '@/composables/useDeviceEvents';
 
+const { t } = useI18n();
 const router = useRouter();
 
 // 监听设备事件，自动刷新仪表盘
@@ -124,11 +126,11 @@ useDeviceEvents(() => {
 const counts = reactive({ total: 0, online: 0, offline: 0, fault: 0, unactivated: 0, alertBadge: 0, activeToday: 0 });
 
 const statCards = computed(() => [
-  { key: 'total' as const, label: '设备总数', gradient: 'linear-gradient(135deg, #2a4a7f, #3b82f6)', icon: ClusterOutlined },
-  { key: 'online' as const, label: '在线', gradient: 'linear-gradient(135deg, #0d6b5e, #1a8c6e)', icon: CheckCircleOutlined },
-  { key: 'offline' as const, label: '离线', gradient: 'linear-gradient(135deg, #5a6a7a, #a0aec0)', icon: StopOutlined },
-  { key: 'fault' as const, label: '故障', gradient: 'linear-gradient(135deg, #8b3a3a, #c96b6b)', icon: WarningOutlined },
-  { key: 'unactivated' as const, label: '未激活', gradient: 'linear-gradient(135deg, #4a5e78, #7c9ab8)', icon: LockOutlined },
+  { key: 'total' as const, label: t('overview.totalDevices'), gradient: 'linear-gradient(135deg, #2a4a7f, #3b82f6)', icon: ClusterOutlined },
+  { key: 'online' as const, label: t('common.online'), gradient: 'linear-gradient(135deg, #0d6b5e, #1a8c6e)', icon: CheckCircleOutlined },
+  { key: 'offline' as const, label: t('common.offline'), gradient: 'linear-gradient(135deg, #5a6a7a, #a0aec0)', icon: StopOutlined },
+  { key: 'fault' as const, label: t('common.fault'), gradient: 'linear-gradient(135deg, #8b3a3a, #c96b6b)', icon: WarningOutlined },
+  { key: 'unactivated' as const, label: t('common.unactivated'), gradient: 'linear-gradient(135deg, #4a5e78, #7c9ab8)', icon: LockOutlined },
 ]);
 
 // ─── CountUp 动画 ───
@@ -175,7 +177,7 @@ function formatAlertTime(time: string) {
   const datePart = time.slice(0, 10);
   const timePart = time.slice(11);
   if (datePart === today) return timePart;
-  if (datePart === yesterday) return `昨天 ${timePart}`;
+  if (datePart === yesterday) return `${t('overview.yesterday')} ${timePart}`;
   return `${datePart.slice(5)} ${timePart}`;
 }
 
@@ -202,23 +204,29 @@ async function renderPie() {
   }
   pieInstance = echarts.init(pieRef.value);
 
+  const lblOnline = t('common.online');
+  const lblOffline = t('common.offline');
+  const lblFault = t('common.fault');
+  const lblUnactivated = t('common.unactivated');
+  const lblNoDevice = t('overview.noDevices');
+
   const hasData = counts.online + counts.offline + counts.fault + counts.unactivated > 0;
   const data = hasData ? [
-    { value: counts.online, name: '在线', itemStyle: { color: '#1a8c6e' } },
-    { value: counts.offline, name: '离线', itemStyle: { color: '#a0aec0' } },
-    { value: counts.fault, name: '故障', itemStyle: { color: '#c96b6b' } },
-    { value: counts.unactivated, name: '未激活', itemStyle: { color: '#7c9ab8' } },
+    { value: counts.online, name: lblOnline, itemStyle: { color: '#1a8c6e' } },
+    { value: counts.offline, name: lblOffline, itemStyle: { color: '#a0aec0' } },
+    { value: counts.fault, name: lblFault, itemStyle: { color: '#c96b6b' } },
+    { value: counts.unactivated, name: lblUnactivated, itemStyle: { color: '#7c9ab8' } },
   ] : [
-    { value: 1, name: '暂无设备', itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 1, colorStops: [{ offset: 0, color: '#2a4a7f' }, { offset: 1, color: '#3b82f6' }] } } },
+    { value: 1, name: lblNoDevice, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 1, y2: 1, colorStops: [{ offset: 0, color: '#2a4a7f' }, { offset: 1, color: '#3b82f6' }] } } },
   ];
 
   // 颜色映射：[亮色, 暗色]
   const colorMap: Record<string, string[]> = {
-    '在线': ['#2dd4bf', '#0d6b5e'],
-    '离线': ['#c0cad8', '#7a8a9a'],
-    '故障': ['#e08080', '#8b3a3a'],
-    '未激活': ['#9cb8d4', '#4a5e78'],
-    '暂无设备': ['#3b82f6', '#2a4a7f'],
+    [lblOnline]: ['#2dd4bf', '#0d6b5e'],
+    [lblOffline]: ['#c0cad8', '#7a8a9a'],
+    [lblFault]: ['#e08080', '#8b3a3a'],
+    [lblUnactivated]: ['#9cb8d4', '#4a5e78'],
+    [lblNoDevice]: ['#3b82f6', '#2a4a7f'],
   };
 
   // 主体数据加渐变
@@ -247,8 +255,8 @@ async function renderPie() {
     tooltip: {
       trigger: 'item',
       formatter: (params: any) => {
-        if (params.name === '暂无设备') return '暂无设备';
-        return `${params.name}: ${params.value} 台 (${params.percent}%)`;
+        if (params.name === lblNoDevice) return lblNoDevice;
+        return `${params.name}: ${params.value} (${params.percent}%)`;
       },
     },
     legend: {
@@ -257,7 +265,7 @@ async function renderPie() {
       itemHeight: 10,
       itemGap: 16,
       textStyle: { color: '#64748b', fontSize: 12 },
-      data: hasData ? ['在线', '离线', '故障', '未激活'] : ['暂无设备'],
+      data: hasData ? [lblOnline, lblOffline, lblFault, lblUnactivated] : [lblNoDevice],
     },
     series: [
       // 底座：往下偏移，浅灰色，模拟厚度
@@ -336,12 +344,12 @@ const statusColor: Record<string, string> = {
   fault: '#c96b6b',
   unactivated: '#7c9ab8',
 };
-const statusLabel: Record<string, string> = {
-  online: '在线',
-  offline: '离线',
-  fault: '故障',
-  unactivated: '未激活',
-};
+const statusLabel = computed<Record<string, string>>(() => ({
+  online: t('common.online'),
+  offline: t('common.offline'),
+  fault: t('common.fault'),
+  unactivated: t('common.unactivated'),
+}));
 
 function initMap() {
   if (!mapRef.value) return;
@@ -382,7 +390,7 @@ function initMap() {
     marker.bindTooltip(
       `<div style="font-family:monospace;font-size:12px;line-height:1.6">
         <div style="font-weight:600;color:${color}">${d.sn}</div>
-        <div>状态: ${statusLabel[d.status] || d.status}</div>
+        <div>${t('overview.mapStatus')}: ${statusLabel.value[d.status] || d.status}</div>
       </div>`,
       { className: 'dark-tooltip', direction: 'top', offset: [0, -14] },
     );
@@ -447,7 +455,7 @@ async function loadDashboard() {
         });
         const marker = L.marker([d.lat, d.lng], { icon }).addTo(map!);
         marker.bindTooltip(
-          '<div style="font-size:12px"><b>' + d.sn + '</b><br>状态: ' + ((statusLabel as any)[d.status] || d.status) + '</div>',
+          '<div style="font-size:12px"><b>' + d.sn + '</b><br>' + t('overview.mapStatus') + ': ' + (statusLabel.value[d.status] || d.status) + '</div>',
           { direction: 'top', offset: [0, -14] }
         );
         marker.on('click', () => goDevice(d.sn));

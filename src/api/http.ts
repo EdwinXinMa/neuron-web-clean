@@ -2,6 +2,9 @@ import axios from 'axios'
 import type { AxiosResponse } from 'axios'
 import { message } from 'ant-design-vue'
 import router from '../router'
+import { i18n, getStoredLang } from '../i18n'
+
+const t = (key: string) => i18n.global.t(key)
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -17,8 +20,11 @@ http.interceptors.request.use((config) => {
   if (token) {
     config.headers['X-Access-Token'] = token
   } else if (!whiteList.some(url => config.url?.includes(url))) {
-    return Promise.reject(new axios.Cancel('未登录'))
+    return Promise.reject(new axios.Cancel(t('http.notLoggedIn')))
   }
+  // 携带当前语言，后端据此返回对应语言的消息
+  const langMap: Record<string, string> = { zh: 'zh-CN', en: 'en', tw: 'zh-TW', es: 'es', pt: 'pt' }
+  config.headers['Accept-Language'] = langMap[getStoredLang()] ?? 'zh-CN'
   return config
 })
 
@@ -27,8 +33,8 @@ http.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data } = response
     if (data.success === false) {
-      message.error(data.message || '请求失败')
-      return Promise.reject(new Error(data.message || '请求失败'))
+      message.error(data.message || t('http.requestFail'))
+      return Promise.reject(new Error(data.message || t('http.requestFail')))
     }
     return data
   },
@@ -40,10 +46,10 @@ http.interceptors.response.use(
       localStorage.removeItem('token')
       if (router.currentRoute.value.path !== '/login') {
         router.push('/login')
-        message.error('登录已过期，请重新登录')
+        message.error(t('http.sessionExpired'))
       }
     } else {
-      message.error(error.message || '网络错误')
+      message.error(error.message || t('http.networkError'))
     }
     return Promise.reject(error)
   },

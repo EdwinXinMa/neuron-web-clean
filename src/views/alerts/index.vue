@@ -15,7 +15,7 @@
       <a-range-picker
         v-model:value="dateRange"
         class="dark-picker"
-        :placeholder="['开始时间', '结束时间']"
+        :placeholder="[t('common.startTime'), t('common.endTime')]"
       />
     </div>
 
@@ -25,12 +25,12 @@
         :columns="columns"
         :data-source="filteredAlerts"
         :pagination="{
-        current: alertPage,
-        pageSize: alertPageSize,
-        total: alertTotal,
-        showTotal: (t: number) => `共 ${t} 条`,
-        onChange: onPageChange
-      }"
+          current: alertPage,
+          pageSize: alertPageSize,
+          total: alertTotal,
+          showTotal: (n: number) => t('common.totalRecords', { n }),
+          onChange: onPageChange
+        }"
         row-key="time"
         size="middle"
         class="dark-table"
@@ -56,41 +56,43 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 import type { Dayjs } from 'dayjs'
 
+const { t } = useI18n()
 const router = useRouter()
 
 const activeLevel = ref<string>('all')
 const dateRange = ref<[Dayjs, Dayjs] | null>(null)
 
-const levelOptions = [
-  { label: '全部', value: 'all' },
-  { label: '🔴 严重', value: 'critical' },
-  { label: '🟠 重要', value: 'major' },
-  { label: '🔵 一般', value: 'minor' },
-  { label: '⚫ 信息', value: 'info' },
-]
+const levelOptions = computed(() => [
+  { label: t('common.all'), value: 'all' },
+  { label: t('alert.btnCritical'), value: 'critical' },
+  { label: t('alert.btnMajor'), value: 'major' },
+  { label: t('alert.btnMinor'), value: 'minor' },
+  { label: t('alert.btnInfo'), value: 'info' },
+])
 
-const levelLabelMap: Record<string, string> = {
-  critical: '严重',
-  major: '重要',
-  minor: '一般',
-  info: '信息',
-}
+const levelLabelMap = computed<Record<string, string>>(() => ({
+  critical: t('alert.levelCritical'),
+  major: t('alert.levelMajor'),
+  minor: t('alert.levelMinor'),
+  info: t('alert.levelInfo'),
+}))
 
-const columns = [
-  { title: '级别', dataIndex: 'level', width: 100 },
-  { title: '设备序列号', dataIndex: 'device', width: 220 },
-  { title: '告警内容', dataIndex: 'msg' },
+const columns = computed(() => [
+  { title: t('alert.colLevel'), dataIndex: 'level', width: 100 },
+  { title: t('alert.colDevice'), dataIndex: 'device', width: 220 },
+  { title: t('alert.colMsg'), dataIndex: 'msg' },
   {
-    title: '时间',
+    title: t('alert.colTime'),
     dataIndex: 'time',
     width: 180,
     defaultSortOrder: 'descend' as const,
-    sorter: (a: Alert, b: Alert) => a.time.localeCompare(b.time),
+    sorter: (a: any, b: any) => a.time.localeCompare(b.time),
   },
-]
+])
 
 // 真实告警数据
 const alertList = ref<any[]>([])
@@ -103,7 +105,6 @@ async function loadAlerts() {
   alertLoading.value = true
   try {
     const params: any = { pageNo: alertPage.value, pageSize: alertPageSize }
-    // 级别映射：前端 critical/major/minor/info → 后端 CRITICAL/IMPORTANT/NORMAL/INFO
     const levelMap: Record<string, string> = { critical: 'CRITICAL', major: 'IMPORTANT', minor: 'NORMAL', info: 'INFO' }
     if (activeLevel.value !== 'all') params.alertLevel = levelMap[activeLevel.value] || activeLevel.value
     if (dateRange.value) {
@@ -247,110 +248,42 @@ function goDevice(sn: string) {
 }
 
 /* ── Ant Design 表格覆盖 ── */
-:deep(.dark-table) {
-  background: transparent;
-}
-
-:deep(.dark-table .ant-table) {
-  background: #fff;
-  color: #1a1a2e;
-}
-
+:deep(.dark-table) { background: transparent; }
+:deep(.dark-table .ant-table) { background: #fff; color: #1a1a2e; }
 :deep(.dark-table .ant-table-thead > tr > th) {
-  background: #fafbfc !important;
-  color: #64748b !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  font-weight: 500;
+  background: #fafbfc !important; color: #64748b !important;
+  border-bottom: 1px solid #e2e8f0 !important; font-weight: 500;
 }
-
-:deep(.dark-table .ant-table-thead > tr > th::before) {
-  display: none !important;
-}
-
+:deep(.dark-table .ant-table-thead > tr > th::before) { display: none !important; }
 :deep(.dark-table .ant-table-tbody > tr > td) {
-  background: #fff !important;
-  color: #1a1a2e !important;
+  background: #fff !important; color: #1a1a2e !important;
   border-bottom: 1px solid #f0f0f0 !important;
-  padding-top: 16px !important;
-  padding-bottom: 16px !important;
+  padding-top: 16px !important; padding-bottom: 16px !important;
 }
-
-:deep(.dark-table .ant-table-tbody > tr:hover > td) {
-  background: #f5f7fa !important;
-}
-
-:deep(.dark-table .ant-table-cell-row-hover) {
-  background: #f5f7fa !important;
-}
-
-/* 分页器 */
-:deep(.dark-table .ant-pagination) {
-  color: #64748b;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item) {
-  background: #fff;
-  border-color: #e2e8f0;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item a) {
-  color: #64748b;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item-active) {
-  border-color: #3b82f6;
-}
-
-:deep(.dark-table .ant-pagination .ant-pagination-item-active a) {
-  color: #3b82f6;
-}
-
+:deep(.dark-table .ant-table-tbody > tr:hover > td) { background: #f5f7fa !important; }
+:deep(.dark-table .ant-table-cell-row-hover) { background: #f5f7fa !important; }
+:deep(.dark-table .ant-pagination) { color: #64748b; }
+:deep(.dark-table .ant-pagination .ant-pagination-item) { background: #fff; border-color: #e2e8f0; }
+:deep(.dark-table .ant-pagination .ant-pagination-item a) { color: #64748b; }
+:deep(.dark-table .ant-pagination .ant-pagination-item-active) { border-color: #3b82f6; }
+:deep(.dark-table .ant-pagination .ant-pagination-item-active a) { color: #3b82f6; }
 :deep(.dark-table .ant-pagination .ant-pagination-prev .ant-pagination-item-link),
 :deep(.dark-table .ant-pagination .ant-pagination-next .ant-pagination-item-link) {
-  color: #64748b;
-  background: #fff;
-  border-color: #e2e8f0;
+  color: #64748b; background: #fff; border-color: #e2e8f0;
 }
-
-:deep(.dark-table .ant-table-column-sorter) {
-  color: #94a3b8;
-}
-
+:deep(.dark-table .ant-table-column-sorter) { color: #94a3b8; }
 :deep(.dark-table .ant-select-selector) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-  color: #64748b !important;
+  background: #fff !important; border-color: #e2e8f0 !important; color: #64748b !important;
 }
-
-:deep(.dark-table .ant-pagination-total-text) {
-  color: #94a3b8;
-}
-
+:deep(.dark-table .ant-pagination-total-text) { color: #94a3b8; }
 :deep(.dark-table .ant-table-empty .ant-table-placeholder) {
-  background: #fff !important;
-  color: #94a3b8 !important;
+  background: #fff !important; color: #94a3b8 !important;
 }
 
 /* ── 日期选择器 ── */
-:deep(.dark-picker) {
-  background: #fff !important;
-  border-color: #e2e8f0 !important;
-}
-
-:deep(.dark-picker input) {
-  color: #1a1a2e !important;
-}
-
-:deep(.dark-picker .ant-picker-suffix) {
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-picker .ant-picker-separator) {
-  color: #94a3b8 !important;
-}
-
-:deep(.dark-picker .ant-picker-clear) {
-  background: #fff !important;
-  color: #94a3b8 !important;
-}
+:deep(.dark-picker) { background: #fff !important; border-color: #e2e8f0 !important; }
+:deep(.dark-picker input) { color: #1a1a2e !important; }
+:deep(.dark-picker .ant-picker-suffix) { color: #94a3b8 !important; }
+:deep(.dark-picker .ant-picker-separator) { color: #94a3b8 !important; }
+:deep(.dark-picker .ant-picker-clear) { background: #fff !important; color: #94a3b8 !important; }
 </style>

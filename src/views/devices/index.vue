@@ -5,7 +5,7 @@
       <div class="panel-header">
         <a-input-search
           v-model:value="searchText"
-          placeholder="按序列号搜索..."
+          :placeholder="t('device.searchSn')"
           allow-clear
           class="search-input"
           @search="onSearch"
@@ -13,11 +13,11 @@
       </div>
       <div class="status-filter">
         <a-radio-group v-model:value="statusFilter" button-style="solid" size="small" class="filter-group">
-          <a-radio-button value="all">全部</a-radio-button>
-          <a-radio-button value="online">在线</a-radio-button>
-          <a-radio-button value="offline">离线</a-radio-button>
-          <a-radio-button value="fault">故障</a-radio-button>
-          <a-radio-button value="unactivated">未激活</a-radio-button>
+          <a-radio-button value="all">{{ t('common.all') }}</a-radio-button>
+          <a-radio-button value="online">{{ t('common.online') }}</a-radio-button>
+          <a-radio-button value="offline">{{ t('common.offline') }}</a-radio-button>
+          <a-radio-button value="fault">{{ t('common.fault') }}</a-radio-button>
+          <a-radio-button value="unactivated">{{ t('common.unactivated') }}</a-radio-button>
         </a-radio-group>
       </div>
       <div class="device-list">
@@ -40,7 +40,7 @@
           </div>
           <div v-if="gIdx < groupedDevices.length - 1" class="group-divider"></div>
         </template>
-        <div v-if="deviceList.length === 0" class="empty-list">无匹配设备</div>
+        <div v-if="deviceList.length === 0" class="empty-list">{{ t('device.noMatchingDevices') }}</div>
       </div>
       <div class="pagination-bar">
         <a-pagination
@@ -48,7 +48,7 @@
           :total="filteredTotal"
           :page-size="pageSize"
           size="small"
-          :show-total="(total: number) => `共 ${total} 台`"
+          :show-total="(n: number) => t('device.totalDevices', { n })"
         />
       </div>
     </div>
@@ -66,8 +66,8 @@
             <path d="M82 55l3 3 6-6" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
-        <div class="empty-text">选择左侧设备查看详情</div>
-        <div class="empty-hint">点击设备列表中的任意设备</div>
+        <div class="empty-text">{{ t('device.selectDevice') }}</div>
+        <div class="empty-hint">{{ t('device.selectDeviceHint') }}</div>
       </div>
       <div v-else class="detail-content">
         <!-- 头部：SN + 台账摘要 -->
@@ -77,25 +77,25 @@
             <div class="detail-sub">
               <span class="sub-item">
                 <ShopOutlined class="sub-icon" />
-                <span class="sub-label">经销商</span>
+                <span class="sub-label">{{ t('device.dealer') }}</span>
                 <span v-if="selectedDevice.dealer">{{ selectedDevice.dealer }}</span>
-                <a-tooltip v-else title="台账信息不完整，请前往设备管理完善">
-                  <span class="sub-empty">未填写 <span class="sub-tip-icon">⚠</span></span>
+                <a-tooltip v-else :title="t('device.ledgerIncomplete')">
+                  <span class="sub-empty">{{ t('device.notFilled') }} <span class="sub-tip-icon">⚠</span></span>
                 </a-tooltip>
               </span>
               <span class="sub-item">
                 <AppstoreOutlined class="sub-icon" />
-                <span class="sub-label">类型</span>
+                <span class="sub-label">{{ t('device.type') }}</span>
                 <span>{{ selectedDevice.deviceType || '-' }}</span>
               </span>
               <span class="sub-item">
                 <TagOutlined class="sub-icon" />
-                <span class="sub-label">型号</span>
+                <span class="sub-label">{{ t('device.model') }}</span>
                 <span>{{ selectedDevice.deviceModel || '-' }}</span>
               </span>
               <span class="sub-item">
                 <CalendarOutlined class="sub-icon" />
-                <span class="sub-label">出货</span>
+                <span class="sub-label">{{ t('device.shipDate') }}</span>
                 <span>{{ selectedDevice.shipDate ? selectedDevice.shipDate.slice(0, 10) : '-' }}</span>
               </span>
             </div>
@@ -109,60 +109,60 @@
 
         <!-- 未激活提示 -->
         <div v-if="selectedDevice.status === 'unactivated'" class="unactivated-tip">
-          ⚠ 设备未激活，等待首次上线
+          {{ t('device.unactivatedTip') }}
         </div>
 
         <!-- 两列 grid -->
         <div class="detail-grid">
           <!-- 左列：设备状态 -->
           <div class="detail-section">
-            <div class="section-title"><DashboardOutlined class="section-icon" /> 设备状态</div>
+            <div class="section-title"><DashboardOutlined class="section-icon" /> {{ t('device.sectionStatus') }}</div>
             <div class="info-row">
-              <span class="info-label">在线状态</span>
+              <span class="info-label">{{ t('device.onlineStatus') }}</span>
               <span class="info-value">
                 <a-badge :status="badgeStatus(selectedDevice.status)" :text="statusLabel(selectedDevice.status)" :class="`badge-${selectedDevice.status}`" />
-                <a-tooltip v-if="(selectedDevice.status === 'online' || selectedDevice.status === 'fault') && !resetting" title="重启">
+                <a-tooltip v-if="(selectedDevice.status === 'online' || selectedDevice.status === 'fault') && !resetting" :title="t('device.reboot')">
                   <a-popconfirm
-                    title="确认重启该设备？"
-                    ok-text="确认"
-                    cancel-text="取消"
+                    :title="t('device.confirmReboot')"
+                    :ok-text="t('common.confirm')"
+                    :cancel-text="t('common.cancel')"
                     @confirm="resetDevice"
                   >
                     <ReloadOutlined class="reset-icon" />
                   </a-popconfirm>
                 </a-tooltip>
-                <a-tooltip v-if="resetting" title="重启中...">
+                <a-tooltip v-if="resetting" :title="t('device.rebooting')">
                   <LoadingOutlined class="reset-icon resetting" />
                 </a-tooltip>
               </span>
             </div>
             <div class="info-row">
-              <span class="info-label">最后心跳</span>
+              <span class="info-label">{{ t('device.lastHb') }}</span>
               <span class="info-value">{{ selectedDevice.lastHb }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">固件版本</span>
+              <span class="info-label">{{ t('device.firmware') }}</span>
               <span class="info-value">
                 {{ selectedDevice.fw }}
-                <a-tooltip v-if="selectedDevice.status === 'online' && otaPhase === 'idle' && isAnyCharging" title="充电中禁止升级"><a-button type="link" size="small" class="action-btn" disabled>升级</a-button></a-tooltip>
-                <a-button v-else-if="selectedDevice.status === 'online' && otaPhase === 'idle'" type="link" size="small" class="action-btn" @click="openOtaSelect">升级</a-button>
+                <a-tooltip v-if="selectedDevice.status === 'online' && otaPhase === 'idle' && isAnyCharging" :title="t('device.noUpgradeWhileCharging')"><a-button type="link" size="small" class="action-btn" disabled>{{ t('device.upgrade') }}</a-button></a-tooltip>
+                <a-button v-else-if="selectedDevice.status === 'online' && otaPhase === 'idle'" type="link" size="small" class="action-btn" @click="openOtaSelect">{{ t('device.upgrade') }}</a-button>
               </span>
             </div>
             <!-- 选择固件（内嵌） -->
             <div v-if="otaPhase === 'select'" class="ota-inline">
-              <div class="ota-inline-header"><span class="ota-inline-label">选择目标固件版本</span></div>
-              <div v-if="firmwareList.length === 0" style="color: #64748b; font-size: 13px; padding: 4px 0;">暂无可用固件</div>
+              <div class="ota-inline-header"><span class="ota-inline-label">{{ t('device.selectFirmware') }}</span></div>
+              <div v-if="firmwareList.length === 0" style="color: #64748b; font-size: 13px; padding: 4px 0;">{{ t('device.noFirmware') }}</div>
               <a-radio-group v-else v-model:value="selectedFw" class="fw-radio-group" style="width:100%;">
                 <div v-for="fw in firmwareList" :key="fw.id" class="fw-option">
                   <a-radio :value="fw.id">
                     <span style="color:#3b82f6;font-weight:600;">{{ fw.version }}</span>
-                    <span style="color:#64748b;font-size:12px;margin-left:8px;">{{ fw.releaseNotes || '无说明' }}</span>
+                    <span style="color:#64748b;font-size:12px;margin-left:8px;">{{ fw.releaseNotes || t('device.noReleaseNotes') }}</span>
                   </a-radio>
                 </div>
               </a-radio-group>
               <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
-                <a-button size="small" @click="closeOtaModal">取消</a-button>
-                <a-button size="small" type="primary" :disabled="!selectedFw" @click="confirmOta" style="background:rgba(0,212,255,0.15);border-color:#3b82f6;color:#3b82f6;">确认升级</a-button>
+                <a-button size="small" @click="closeOtaModal">{{ t('common.cancel') }}</a-button>
+                <a-button size="small" type="primary" :disabled="!selectedFw" @click="confirmOta" style="background:rgba(0,212,255,0.15);border-color:#3b82f6;color:#3b82f6;">{{ t('device.confirmUpgrade') }}</a-button>
               </div>
             </div>
 
@@ -176,14 +176,14 @@
                 <div class="ota-bar" :style="{ width: otaProgress + '%' }"></div>
               </div>
               <div v-if="otaError" class="ota-error-text">{{ otaError }}</div>
-              <a-button v-if="otaStatus === 'COMPLETED' || otaStatus === 'FAILED'" size="small" class="ota-close-btn" @click="closeOtaModal">关闭</a-button>
+              <a-button v-if="otaStatus === 'COMPLETED' || otaStatus === 'FAILED'" size="small" class="ota-close-btn" @click="closeOtaModal">{{ t('common.cancel') }}</a-button>
             </div>
             <div class="info-row">
-              <span class="info-label">WiFi 信号</span>
+              <span class="info-label">{{ t('device.wifiSignal') }}</span>
               <span class="info-value">{{ selectedDevice.wifiRssi != null ? selectedDevice.wifiRssi + ' dBm' : '-' }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">MAC 地址</span>
+              <span class="info-label">{{ t('device.macAddress') }}</span>
               <span class="info-value" style="font-family: monospace;">{{ selectedDevice.macAddress || '-' }}</span>
             </div>
           </div>
@@ -191,7 +191,7 @@
           <!-- 右列：家庭电力 -->
           <div class="detail-section">
             <div class="section-title">
-              <ThunderboltOutlined class="section-icon" /> 家庭电力（CT 数据）
+              <ThunderboltOutlined class="section-icon" /> {{ t('device.sectionPower') }}
               <BarChartOutlined
                 v-if="selectedDevice.status !== 'unactivated'"
                 class="chart-icon"
@@ -201,7 +201,7 @@
             <!-- 电流进度条 -->
             <div v-if="ctCurrentTotal > 0" class="current-bar-wrapper">
               <div class="current-bar-header">
-                <span class="current-bar-label">电流负载</span>
+                <span class="current-bar-label">{{ t('device.currentLoad') }}</span>
                 <span class="current-bar-value">{{ ctCurrentTotal }} / {{ selectedDevice.ctMax }} A</span>
               </div>
               <div class="current-bar-bg">
@@ -215,11 +215,11 @@
               v-if="selectedDevice.ctMax > 0 && ctCurrentTotal / selectedDevice.ctMax >= 0.9"
               type="warning"
               show-icon
-              :message="`电流 ${ctCurrentTotal}A 已达阈值 ${selectedDevice.ctMax}A 的 ${Math.round(ctCurrentTotal / selectedDevice.ctMax * 100)}%`"
+              :message="`${ctCurrentTotal}A / ${selectedDevice.ctMax}A (${Math.round(ctCurrentTotal / selectedDevice.ctMax * 100)}%)`"
               class="current-warning"
             />
             <div class="info-row">
-              <span class="info-label">总电流</span>
+              <span class="info-label">{{ t('device.totalCurrent') }}</span>
               <span class="info-value highlight">
                 <template v-if="ctCurrentTotal > 0">
                   {{ ctCurrentTotal }} A
@@ -229,7 +229,7 @@
               </span>
             </div>
             <div class="info-row">
-              <span class="info-label">充电电流</span>
+              <span class="info-label">{{ t('device.chargingCurrent') }}</span>
               <span class="info-value" style="color: #16a34a; font-weight: 600;">
                 <template v-if="chargingCurrentTotal > 0">
                   {{ chargingCurrentTotal }} A
@@ -239,7 +239,7 @@
               </span>
             </div>
             <div class="info-row">
-              <span class="info-label">家用电流</span>
+              <span class="info-label">{{ t('device.homeCurrent') }}</span>
               <span class="info-value">
                 <template v-if="loadCurrentTotal > 0">
                   {{ loadCurrentTotal }} A
@@ -249,11 +249,11 @@
               </span>
             </div>
             <div class="info-row">
-              <span class="info-label">电流阈值</span>
+              <span class="info-label">{{ t('device.currentThreshold') }}</span>
               <span class="info-value">
                 {{ selectedDevice.ctMax }} A
-                <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" title="充电中禁止修改"><a-button type="link" size="small" class="action-btn" disabled>修改</a-button></a-tooltip>
-                <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">修改</a-button>
+                <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" :title="t('device.noEditWhileCharging')"><a-button type="link" size="small" class="action-btn" disabled>{{ t('device.modify') }}</a-button></a-tooltip>
+                <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
               </span>
             </div>
             <!-- <div class="info-row">
@@ -269,10 +269,10 @@
           <!-- 下挂充电桩（跨两列） -->
           <div class="detail-section full">
             <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
-              <span><CarOutlined class="section-icon" /> 下挂充电桩</span>
-              <a-button v-if="selectedDevice.status === 'online' && onlinePiles.length > 1" type="link" size="small" class="action-btn" @click="openBatchWorkMode">批量设置模式</a-button>
+              <span><CarOutlined class="section-icon" /> {{ t('device.sectionChargers') }}</span>
+              <a-button v-if="selectedDevice.status === 'online' && onlinePiles.length > 1" type="link" size="small" class="action-btn" @click="openBatchWorkMode">{{ t('device.batchSetMode') }}</a-button>
             </div>
-            <div v-if="selectedDevice.chargers.length === 0" class="no-chargers">暂无下挂充电桩</div>
+            <div v-if="selectedDevice.chargers.length === 0" class="no-chargers">{{ t('device.noChargers') }}</div>
             <div v-for="pile in selectedDevice.chargers" :key="pile.sn"
               :class="['pile-card', {
                 'pile-card-charging': pile.hasDlmData ? pile.chargeEVStatus === 'Charging' : false,
@@ -292,7 +292,7 @@
                   </span>
                   <!-- 有 DLMStatus 数据：用 connectStatus + charge_EVStatus -->
                   <template v-if="pile.hasDlmData">
-                    <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? '在线' : '离线' }}</a-tag>
+                    <a-tag :color="pile.connectStatus === 'online' ? '#166534' : '#991b1b'" size="small">{{ pile.connectStatus === 'online' ? t('common.online') : t('common.offline') }}</a-tag>
                     <a-tag v-if="pile.chargeEVStatus && pile.connectStatus !== 'offline'" :color="chargerTagColor(connStatusMap(pile.chargeEVStatus))" :class="[`tag-${connStatusMap(pile.chargeEVStatus)}`]" size="small">{{ evStatusLabel(pile.chargeEVStatus) }}</a-tag>
                   </template>
                   <!-- 没有 DLMStatus 数据：fallback 到 nc_device.online_status -->
@@ -314,14 +314,14 @@
               </div>
               <!-- 充电信息（充电中显示电量） -->
               <div v-if="pile.hasDlmData && pile.chargeEVStatus === 'Charging' && pile.connectStatus !== 'offline' && pile.energy" class="pile-charge-info">
-                <span>电量 <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
+                <span>{{ t('device.energyLabel') }} <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
               </div>
               <!-- 枪列表（桩离线时不显示） -->
               <div v-if="!(pile.hasDlmData && pile.connectStatus === 'offline')" class="pile-connectors">
                 <div v-for="(conn, cidx) in pile.connectors" :key="conn.id" class="connector-row">
                   <span class="conn-indent">└</span>
                   <span :class="['status-dot', `status-${conn.status}`]"></span>
-                  <span class="conn-label">枪 {{ conn.id }}</span>
+                  <span class="conn-label">{{ t('device.connectorLabel', { n: conn.id }) }}</span>
                   <a-tag :color="chargerTagColor(conn.status)" :class="['charger-tag', `tag-${conn.status}`]" size="small">
                     {{ chargerStatusLabel(conn.status) }}
                   </a-tag>
@@ -334,29 +334,29 @@
           <!-- 告警 / 日志（跨两列） -->
           <div class="detail-section full">
             <a-tabs v-model:activeKey="logTab" class="dark-tabs">
-              <a-tab-pane key="alerts" tab="最近告警">
-                <div v-if="deviceAlerts.length === 0" class="no-data">暂无告警记录</div>
+              <a-tab-pane key="alerts" :tab="t('device.tabAlerts')">
+                <div v-if="deviceAlerts.length === 0" class="no-data">{{ t('device.noAlerts') }}</div>
                 <div v-for="(alert, idx) in deviceAlerts" :key="idx" class="alert-row">
                   <a-tag :color="{ critical: '#ff4757', major: '#ff9f43', minor: '#3b82f6', info: '#64748b' }[alert.level] || '#faad14'" size="small">
-                    {{ { critical: '严重', major: '重要', minor: '一般', info: '信息' }[alert.level] || alert.level }}
+                    {{ alertLevelText(alert.level) }}
                   </a-tag>
                   <span class="alert-msg">{{ alert.msg }}</span>
                   <span class="alert-time">{{ alert.time }}</span>
                 </div>
               </a-tab-pane>
-              <a-tab-pane key="charging" tab="充电记录">
-                <div v-if="chargingSessions.length === 0" class="no-data">暂无充电记录</div>
+              <a-tab-pane key="charging" :tab="t('device.tabCharging')">
+                <div v-if="chargingSessions.length === 0" class="no-data">{{ t('device.noChargingSessions') }}</div>
                 <a-table
                   v-else
                   :dataSource="chargingSessions"
                   :columns="chargingColumns"
-                  :pagination="{ pageSize: 5, size: 'small', showTotal: (t: number) => `共 ${t} 条` }"
+                  :pagination="{ pageSize: 5, size: 'small', showTotal: (n: number) => t('device.sessionTotal', { n }) }"
                   size="small"
                   :rowKey="(r: any) => r.id"
                 >
                   <template #bodyCell="{ column, record }">
                     <template v-if="column.key === 'connector'">
-                      {{ record.pileSn }} / 枪{{ record.connectorId }}
+                      {{ record.pileSn }} / {{ t('device.connectorLabel', { n: record.connectorId }) }}
                     </template>
                     <template v-if="column.key === 'duration'">
                       {{ record.durationText }}
@@ -365,21 +365,21 @@
                       {{ record.energyText }}
                     </template>
                     <template v-if="column.key === 'method'">
-                      {{ record.chargingMethod === 1 ? 'N3Lite' : record.chargingMethod === 0 ? 'iCharger' : '-' }}
+                      {{ record.chargingMethod === 1 ? t('device.chargeMethodN3') : record.chargingMethod === 0 ? t('device.chargeMethodI') : '-' }}
                     </template>
                     <template v-if="column.key === 'status'">
-                      <a-tag :color="record.status === 'CHARGING' ? '#16a34a' : '#64748b'" size="small">{{ record.status === 'CHARGING' ? '充电中' : '已完成' }}</a-tag>
+                      <a-tag :color="record.status === 'CHARGING' ? '#16a34a' : '#64748b'" size="small">{{ record.status === 'CHARGING' ? t('device.statusCharging') : t('device.statusFinished') }}</a-tag>
                     </template>
                   </template>
                 </a-table>
               </a-tab-pane>
-              <a-tab-pane key="logs" tab="最近操作">
-                <div v-if="deviceLogs.length === 0" class="no-data">暂无操作记录</div>
+              <a-tab-pane key="logs" :tab="t('device.tabLogs')">
+                <div v-if="deviceLogs.length === 0" class="no-data">{{ t('device.noLogs') }}</div>
                 <div v-for="(log, idx) in deviceLogs" :key="idx" class="log-row">
                   <span class="log-time">{{ log.time }}</span>
                   <a-tag color="blue" size="small">{{ log.type }}</a-tag>
                   <span class="log-content">{{ log.content }}</span>
-                  <a-tag :color="log.result === 'success' ? '#2d9d78' : '#ff4757'" size="small">{{ log.result === 'success' ? '成功' : '失败' }}</a-tag>
+                  <a-tag :color="log.result === 'success' ? '#2d9d78' : '#ff4757'" size="small">{{ log.result === 'success' ? t('device.logSuccess') : t('device.logFail') }}</a-tag>
                   <span class="log-user">{{ log.user }}</span>
                 </div>
               </a-tab-pane>
@@ -397,12 +397,12 @@
       class="dlm-modal"
     >
       <div class="dlm-header">
-        <div class="dlm-title">修改最大电流阈值</div>
+        <div class="dlm-title">{{ t('device.dlmModalTitle') }}</div>
         <div class="dlm-value-display">
           <span class="dlm-value-num" :style="{ color: dlmSliderColor }">{{ selectedDlm }}</span>
           <span class="dlm-value-unit">A</span>
         </div>
-        <div class="dlm-current-hint" v-if="selectedDevice">当前：{{ selectedDevice.ctMax || '-' }}A</div>
+        <div class="dlm-current-hint" v-if="selectedDevice">{{ t('device.dlmCurrent', { n: selectedDevice.ctMax || '-' }) }}</div>
       </div>
       <div class="dlm-slider-wrapper">
         <div class="dlm-slider-track" ref="dlmTrackRef" @click="onTrackClick">
@@ -421,18 +421,18 @@
       </div>
       <a-button type="primary" block size="large" class="dlm-confirm-btn" @click="confirmDlm"
         :disabled="selectedDlm === selectedDevice?.ctMax">
-        确认修改为 {{ selectedDlm }}A
+        {{ t('device.dlmConfirmBtn', { n: selectedDlm }) }}
       </a-button>
     </a-modal>
 
     <!-- 单台切换工作模式 Modal -->
     <a-modal
       v-model:open="showWorkModeModal"
-      title="切换工作模式"
+      :title="t('device.switchWorkMode')"
       :width="360"
       @ok="confirmWorkModeChange"
-      okText="确认"
-      cancelText="取消"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
       :okButtonProps="{ disabled: workModeNewValue === workModeOldValue }"
       style="top: 30%;"
     >
@@ -447,20 +447,20 @@
     <!-- 批量设置工作模式 Modal -->
     <a-modal
       v-model:open="showBatchWorkMode"
-      title="批量设置工作模式"
+      :title="t('device.batchWorkModeTitle')"
       :width="400"
       @ok="confirmBatchWorkMode"
-      okText="确认"
-      cancelText="取消"
+      :okText="t('common.confirm')"
+      :cancelText="t('common.cancel')"
     >
-      <div style="margin-bottom:12px; color:#64748b; font-size:13px;">将以下在线充电桩统一切换为：</div>
+      <div style="margin-bottom:12px; color:#64748b; font-size:13px;">{{ t('device.batchWorkModeDesc') }}</div>
       <a-select v-model:value="batchWorkModeValue" style="width:100%; margin-bottom:16px;">
         <a-select-option value="Plc">PLC</a-select-option>
         <a-select-option value="App">APP</a-select-option>
         <a-select-option value="Ocpp">OCPP</a-select-option>
       </a-select>
       <div v-for="p in onlinePiles" :key="p.sn" style="padding:4px 0; font-size:13px; color:#cbd5e1;">
-        {{ p.sn }} <span style="color:#64748b; margin-left:8px;">当前: {{ workModeLabels[p.workMode] || '暂未获取' }}</span>
+        {{ p.sn }} <span style="color:#64748b; margin-left:8px;">{{ t('device.currentMode') }}: {{ workModeLabels[p.workMode] || t('device.modeUnknown') }}</span>
       </div>
     </a-modal>
 
@@ -473,26 +473,26 @@
       :destroyOnClose="true"
     >
       <div class="dlm-chart-header">
-        <div class="dlm-chart-title">动态负载管理（DLM）历史</div>
+        <div class="dlm-chart-title">{{ t('device.dlmChartTitle') }}</div>
       </div>
       <div class="dlm-chart-toolbar">
         <a-radio-group v-model:value="chartPhase" size="small" @change="onChartPhaseChange">
-          <a-radio-button value="total">总</a-radio-button>
-          <a-radio-button value="A">A相</a-radio-button>
-          <a-radio-button value="B">B相</a-radio-button>
-          <a-radio-button value="C">C相</a-radio-button>
+          <a-radio-button value="total">{{ t('device.phaseTotal') }}</a-radio-button>
+          <a-radio-button value="A">{{ t('device.phaseA') }}</a-radio-button>
+          <a-radio-button value="B">{{ t('device.phaseB') }}</a-radio-button>
+          <a-radio-button value="C">{{ t('device.phaseC') }}</a-radio-button>
         </a-radio-group>
         <a-radio-group v-model:value="chartRange" size="small" style="margin-left: auto;" @change="loadChartData">
-          <a-radio-button value="1h">1小时</a-radio-button>
-          <a-radio-button value="6h">6小时</a-radio-button>
-          <a-radio-button value="24h">24小时</a-radio-button>
-          <a-radio-button value="7d">7天</a-radio-button>
+          <a-radio-button value="1h">{{ t('device.range1h') }}</a-radio-button>
+          <a-radio-button value="6h">{{ t('device.range6h') }}</a-radio-button>
+          <a-radio-button value="24h">{{ t('device.range24h') }}</a-radio-button>
+          <a-radio-button value="7d">{{ t('device.range7d') }}</a-radio-button>
         </a-radio-group>
       </div>
       <div class="dlm-chart-container">
         <a-spin :spinning="chartLoading">
           <div ref="chartRef" style="width: 100%; height: 320px;"></div>
-          <div v-if="chartEmpty" class="chart-empty">暂无 DLM 历史数据</div>
+          <div v-if="chartEmpty" class="chart-empty">{{ t('device.noChartData') }}</div>
           <!-- <div v-if="!chartEmpty" class="mini-charts-row">
             <div class="mini-chart-box">
               <div class="mini-chart-label">功率 (W)</div>
@@ -513,10 +513,13 @@
   import { ref, computed, onMounted, watch, nextTick } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
   import { message, Modal } from 'ant-design-vue';
+  import { useI18n } from 'vue-i18n';
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
   import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined } from '@ant-design/icons-vue';
+
+  const { t } = useI18n();
 
   // 监听设备事件，自动刷新列表
   useDeviceEvents((event) => {
@@ -648,13 +651,13 @@
 
   const otaStatusText = computed(() => {
     const map: Record<string, string> = {
-      PENDING: '等待升级...',
-      DOWNLOADING: '固件下载中...',
-      INSTALLING: '安装中...',
-      COMPLETED: '升级完成',
-      FAILED: '升级失败',
+      PENDING: t('device.otaStatusPending'),
+      DOWNLOADING: t('device.otaStatusDownloading'),
+      INSTALLING: t('device.otaStatusInstalling'),
+      COMPLETED: t('device.otaStatusCompleted'),
+      FAILED: t('device.otaStatusFailed'),
     };
-    return map[otaStatus.value] || otaMessage.value || '升级中...';
+    return map[otaStatus.value] || otaMessage.value || t('device.otaStatusDefault');
   });
 
   const otaProgressStatus = computed(() => {
@@ -693,7 +696,7 @@
       deviceList.value = data.records || [];
       total.value = data.total || 0;
     } catch (e: any) {
-      message.error('加载设备列表失败');
+      message.error(t('device.loadListFailed'));
     } finally {
       loading.value = false;
     }
@@ -723,7 +726,7 @@
       const chargeData = chargeRes.result || chargeRes;
       chargingSessionsData.value = chargeData.records || [];
     } catch (e: any) {
-      message.error('加载设备详情失败');
+      message.error(t('device.loadDetailFailed'));
     } finally {
       detailLoading.value = false;
     }
@@ -760,14 +763,14 @@
     }
   });
 
-  function opTypeLabel(t: string): string {
+  function opTypeLabel(key: string): string {
     const map: Record<string, string> = {
-      OTA_UPGRADE: 'OTA 升级',
-      DLM_CONFIG: 'DLM 修改',
-      REMOTE_REBOOT: '远程重启',
-      REMOTE_RESET: '远程重置',
+      OTA_UPGRADE: t('oplog.typeOta'),
+      DLM_CONFIG: t('oplog.typeDlm'),
+      REMOTE_REBOOT: t('oplog.typeReboot'),
+      REMOTE_RESET: t('oplog.typeReset'),
     };
-    return map[t] || t || '其他';
+    return map[key] || key || t('oplog.typeOther');
   }
 
   // ==================== Computed ====================
@@ -877,14 +880,14 @@
   const deviceLogsData = ref<any[]>([]);
   const deviceLogs = computed(() => deviceLogsData.value.slice(0, 3));
 
-  const chargingColumns = [
-    { title: '桩 / 枪', key: 'connector', width: 160 },
-    { title: '开始时间', dataIndex: 'startTime', width: 150 },
-    { title: '时长', key: 'duration', width: 80 },
-    { title: '电量', key: 'energy', width: 100 },
-    { title: '模式', key: 'method', width: 80 },
-    { title: '状态', key: 'status', width: 80 },
-  ];
+  const chargingColumns = computed(() => [
+    { title: t('device.colConnector'), key: 'connector', width: 160 },
+    { title: t('device.colStartTime'), dataIndex: 'startTime', width: 150 },
+    { title: t('device.colDuration'), key: 'duration', width: 80 },
+    { title: t('device.colEnergy'), key: 'energy', width: 100 },
+    { title: t('device.colMethod'), key: 'method', width: 80 },
+    { title: t('device.colStatus'), key: 'status', width: 80 },
+  ]);
 
   const chargingSessionsData = ref<any[]>([]);
   const chargingSessions = computed(() => chargingSessionsData.value.map((s: any) => ({
@@ -898,15 +901,18 @@
     if (!hb) return '-';
     const diff = Date.now() - new Date(hb).getTime();
     const min = Math.floor(diff / 60000);
-    if (min < 1) return '刚刚';
-    if (min < 60) return `${min}分钟前`;
+    if (min < 1) return t('device.hbJustNow');
+    if (min < 60) return t('device.hbMinutes', { n: min });
     const h = Math.floor(min / 60);
-    if (h < 24) return `${h}小时前`;
-    return `${Math.floor(h / 24)}天前`;
+    if (h < 24) return t('device.hbHours', { n: h });
+    return t('device.hbDays', { n: Math.floor(h / 24) });
   }
 
   function statusLabel(status: string): string {
-    const map: Record<string, string> = { online: '在线', offline: '离线', fault: '故障', unactivated: '未激活' };
+    const map: Record<string, string> = {
+      online: t('common.online'), offline: t('common.offline'),
+      fault: t('common.fault'), unactivated: t('common.unactivated'),
+    };
     return map[status] || status;
   }
 
@@ -921,7 +927,10 @@
   }
 
   function alertLevelText(level: string): string {
-    const map: Record<string, string> = { CRITICAL: '严重', IMPORTANT: '重要', NORMAL: '一般', INFO: '信息' };
+    const map: Record<string, string> = {
+      critical: t('alert.levelCritical'), major: t('alert.levelMajor'),
+      minor: t('alert.levelMinor'), info: t('alert.levelInfo'),
+    };
     return map[level] || level;
   }
 
@@ -936,9 +945,11 @@
 
   function chargerStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      charging: '充电中', idle: '空闲', fault: '故障',
-      preparing: '已插枪', suspended: '暂停中', finishing: '已完成', unavailable: '不可用',
-      online: '在线', offline: '离线', unactivated: '未激活',
+      charging: t('device.chargerStatusCharging'), idle: t('device.chargerStatusIdle'),
+      fault: t('device.chargerStatusFault'), preparing: t('device.chargerStatusPreparing'),
+      suspended: t('device.chargerStatusSuspended'), finishing: t('device.chargerStatusFinishing'),
+      unavailable: t('device.chargerStatusUnavailable'),
+      online: t('common.online'), offline: t('common.offline'), unactivated: t('common.unactivated'),
     };
     return map[status] || status;
   }
@@ -971,7 +982,10 @@
 
   function evStatusLabel(status: string): string {
     const map: Record<string, string> = {
-      Available: '空闲', Preparing: '就绪', Charging: '充电中', SuspendedEVSE: '暂停中(桩)', SuspendedEV: '暂停中(车)', Finishing: '已完成', Faulted: '故障', Unavailable: '不可用',
+      Available: t('device.evStatusAvailable'), Preparing: t('device.evStatusPreparing'),
+      Charging: t('device.evStatusCharging'), SuspendedEVSE: t('device.evStatusSuspendedEVSE'),
+      SuspendedEV: t('device.evStatusSuspendedEV'), Finishing: t('device.evStatusFinishing'),
+      Faulted: t('device.evStatusFaulted'), Unavailable: t('device.evStatusUnavailable'),
     };
     return map[status] || status;
   }
@@ -1052,10 +1066,10 @@
     try {
       resetting.value = true;
       await http.post(`/device/${sn}/reset`, null, { params: { type: 'Soft' } });
-      message.success('重启命令已下发');
+      message.success(t('device.rebootSent'));
     } catch (e: any) {
       resetting.value = false;
-      message.error(e?.response?.data?.message || '重启命令下发失败');
+      message.error(e?.response?.data?.message || t('device.rebootFailed'));
     }
   }
 
@@ -1133,7 +1147,7 @@
     otaStatus.value = 'PENDING';
     otaProgress.value = 0;
     otaError.value = '';
-    otaMessage.value = '正在建立连接...';
+    otaMessage.value = t('device.otaConnecting');
     showOtaModal.value = false;
 
     const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1159,10 +1173,10 @@
             animateOtaProgress(target, 2000);
           } else if (newStatus === 'COMPLETED') {
             animateOtaProgress(100, 800);
-            message.success('固件升级成功');
+            message.success(t('device.otaSuccess'));
             setTimeout(() => loadDetail(deviceSn), 1500);
           } else if (newStatus === 'FAILED') {
-            otaError.value = d.message || '升级失败，请重试';
+            otaError.value = d.message || t('device.otaStatusFailed');
             if (otaAnimTimer) { clearInterval(otaAnimTimer); otaAnimTimer = null; }
           }
         } catch { /* ignore parse errors */ }
@@ -1185,12 +1199,12 @@
           if (d.status === 'COMPLETED') {
             if (curStatus !== 'COMPLETED') {
               otaProgress.value = 100;
-              message.success('固件升级成功');
+              message.success(t('device.otaSuccess'));
               setTimeout(() => loadDetail(deviceSn), 1000);
             }
             clearInterval(pollTimer);
           } else if (d.status === 'FAILED') {
-            otaError.value = d.errorMsg || d.message || '升级失败，请重试';
+            otaError.value = d.errorMsg || d.message || t('device.otaStatusFailed');
             clearInterval(pollTimer);
           }
         } catch { /* ignore */ }
@@ -1227,7 +1241,7 @@
       const taskId = typeof res?.result === 'string' ? res.result : res?.result?.taskId || res?.taskId;
       if (!taskId) {
         console.error('OTA start response:', JSON.stringify(res));
-        message.error('升级指令下发失败：未获取到任务ID');
+        message.error(t('device.otaNoTaskId'));
         otaPhase.value = 'idle';
         closeOtaWs();
         return;
@@ -1251,7 +1265,7 @@
       }
 
     } catch (e: any) {
-      message.error('升级指令下发失败：' + (e.message || '网络错误'));
+      message.error(t('device.otaNoTaskId'));
       otaPhase.value = 'idle';
       closeOtaWs();
     }
@@ -1291,11 +1305,11 @@
       });
       selectedDevice.value.ctMax = selectedDlm.value;
       showDlmModal.value = false;
-      message.success(`阈值已修改为 ${selectedDlm.value}A`);
+      message.success(t('device.dlmSuccess', { n: selectedDlm.value }));
       // 刷新详情
       setTimeout(() => loadDetail(selectedDevice.value!.sn), 500);
     } catch (e: any) {
-      message.error('DLM 修改失败：' + (e.message || '网络错误'));
+      message.error(t('device.dlmFailed'));
     }
   }
 
@@ -1328,10 +1342,10 @@
         deviceList: [{ sn: workModePileSn.value, workMode: workModeNewValue.value }],
       });
       showWorkModeModal.value = false;
-      message.success(`工作模式已切换为 ${workModeLabels[workModeNewValue.value]}`);
+      message.success(t('device.workModeSwitched', { mode: workModeLabels[workModeNewValue.value] }));
       setTimeout(() => loadDetail(selectedSn.value!), 500);
     } catch (e: any) {
-      message.error('切换失败：' + (e.message || '网络错误'));
+      message.error(t('device.workModeFailed'));
     }
   }
 
@@ -1350,10 +1364,10 @@
         deviceList: piles.map((p: any) => ({ sn: p.sn, workMode: batchWorkModeValue.value })),
       });
       showBatchWorkMode.value = false;
-      message.success(`已批量切换为 ${workModeLabels[batchWorkModeValue.value]}`);
+      message.success(t('device.batchWorkModeSwitched', { mode: workModeLabels[batchWorkModeValue.value] }));
       setTimeout(() => loadDetail(selectedSn.value!), 500);
     } catch (e: any) {
-      message.error('批量切换失败：' + (e.message || '网络错误'));
+      message.error(t('device.batchWorkModeFailed'));
     }
   }
 
@@ -1403,7 +1417,7 @@
       }
       renderChart(chartPoints);
     } catch (e: any) {
-      message.error('加载图表失败：' + (e.message || '网络错误'));
+      message.error(t('device.chartLoadFailed'));
     } finally {
       chartLoading.value = false;
     }
@@ -1447,7 +1461,7 @@
         },
       },
       legend: {
-        data: ['家庭用电', '充电用电', '断路器额定值'],
+        data: [t('device.chartLoadPower'), t('device.chartChargingPower'), t('device.chartBreaker')],
         bottom: 0,
         textStyle: { color: '#64748b' },
       },
@@ -1472,14 +1486,14 @@
       },
       yAxis: {
         type: 'value',
-        name: chartPhase.value === 'total' ? '电流 - 总 (A)' : `电流 - ${chartPhase.value}相 (A)`,
+        name: chartPhase.value === 'total' ? t('device.chartCurrentTotal') : t('device.chartCurrentPhase', { phase: chartPhase.value }),
         nameTextStyle: { color: '#94a3b8' },
         axisLabel: { color: '#94a3b8' },
         splitLine: { lineStyle: { color: '#f1f5f9' } },
       },
       series: [
         {
-          name: '家庭用电',
+          name: t('device.chartLoadPower'),
           type: 'line',
           stack: 'total',
           areaStyle: { color: 'rgba(251, 146, 60, 0.5)' },
@@ -1492,7 +1506,7 @@
             : p[`load_current_${chartPhase.value.toLowerCase()}`]]),
         },
         {
-          name: '充电用电',
+          name: t('device.chartChargingPower'),
           type: 'line',
           stack: 'total',
           areaStyle: { color: 'rgba(34, 197, 94, 0.5)' },
@@ -1505,7 +1519,7 @@
             : p[`total_charging_current_${chartPhase.value.toLowerCase()}`]]),
         },
         {
-          name: '断路器额定值',
+          name: t('device.chartBreaker'),
           type: 'line',
           lineStyle: { color: '#ef4444', width: 2, type: 'dashed' },
           itemStyle: { color: '#ef4444' },

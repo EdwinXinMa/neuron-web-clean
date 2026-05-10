@@ -4,7 +4,7 @@
     <div class="toolbar">
       <a-input-search
         v-model:value="searchText"
-        placeholder="按邮箱搜索..."
+        :placeholder="t('appUser.searchEmail')"
         allow-clear
         class="search-input"
         @search="onSearch"
@@ -25,14 +25,14 @@
         <template #bodyCell="{ column, record }">
           <template v-if="column.dataIndex === 'status'">
             <span :class="['status-badge', record.status === 1 ? 'status-online' : 'status-offline']">
-              {{ record.status === 1 ? '正常' : '已禁用' }}
+              {{ record.status === 1 ? t('common.normal') : t('common.disabled') }}
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'createTime'">
             {{ record.createTime ? record.createTime.slice(0, 16).replace('T', ' ') : '-' }}
           </template>
           <template v-else-if="column.dataIndex === 'action'">
-            <a-button type="link" size="small" @click="openBindings(record)">绑定列表</a-button>
+            <a-button type="link" size="small" @click="openBindings(record)">{{ t('appUser.bindList') }}</a-button>
           </template>
         </template>
       </a-table>
@@ -41,7 +41,7 @@
     <!-- 绑定设备弹窗 -->
     <a-modal
       v-model:open="showBindModal"
-      :title="`${currentUser?.name || ''} 的绑定设备`"
+      :title="t('appUser.bindModalTitle', { name: currentUser?.name || '' })"
       :footer="null"
       class="dark-modal"
       width="560px"
@@ -62,7 +62,7 @@
           </template>
           <template v-else-if="column.dataIndex === 'online'">
             <span :class="['status-badge', record.online ? 'status-online' : 'status-offline']">
-              {{ record.online ? '在线' : '离线' }}
+              {{ record.online ? t('common.online') : t('common.offline') }}
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'bindTime'">
@@ -72,7 +72,7 @@
         <template #emptyText>
           <div class="bind-empty">
             <div class="bind-empty-icon">📋</div>
-            <div>暂无绑定设备</div>
+            <div>{{ t('appUser.noBindings') }}</div>
           </div>
         </template>
       </a-table>
@@ -84,8 +84,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import http from '@/api/http'
 
+const { t } = useI18n()
 const router = useRouter()
 
 const searchText = ref('')
@@ -95,33 +97,38 @@ const loading = ref(false)
 const userList = ref<any[]>([])
 const total = ref(0)
 
-// 绑定弹窗
 const showBindModal = ref(false)
 const currentUser = ref<any>(null)
 const bindList = ref<any[]>([])
 const bindLoading = ref(false)
 
-const columns = [
-  { title: '邮箱', dataIndex: 'email', width: 200 },
-  { title: '姓名', dataIndex: 'name', width: 120 },
-  { title: '状态', dataIndex: 'status', width: 80 },
-  { title: '绑定设备', dataIndex: 'bindCount', width: 90, align: 'center' as const, customRender: ({ text }: any) => (text || 0) + ' 台' },
-  { title: '注册时间', dataIndex: 'createTime', width: 160 },
-  { title: '操作', dataIndex: 'action', width: 120 },
-]
+const columns = computed(() => [
+  { title: t('appUser.colEmail'), dataIndex: 'email', width: 200 },
+  { title: t('appUser.colName'), dataIndex: 'name', width: 120 },
+  { title: t('appUser.colStatus'), dataIndex: 'status', width: 80 },
+  {
+    title: t('appUser.colBindCount'),
+    dataIndex: 'bindCount',
+    width: 90,
+    align: 'center' as const,
+    customRender: ({ text }: any) => t('appUser.bindCountUnit', { n: text || 0 }),
+  },
+  { title: t('appUser.colCreateTime'), dataIndex: 'createTime', width: 160 },
+  { title: t('appUser.colAction'), dataIndex: 'action', width: 120 },
+])
 
-const bindColumns = [
-  { title: '设备序列号', dataIndex: 'deviceSn', width: 180 },
-  { title: '型号', dataIndex: 'deviceModel', width: 120 },
-  { title: '在线状态', dataIndex: 'online', width: 80 },
-  { title: '绑定时间', dataIndex: 'bindTime', width: 150 },
-]
+const bindColumns = computed(() => [
+  { title: t('appUser.colDeviceSn'), dataIndex: 'deviceSn', width: 180 },
+  { title: t('appUser.colModel'), dataIndex: 'deviceModel', width: 120 },
+  { title: t('appUser.colOnlineStatus'), dataIndex: 'online', width: 80 },
+  { title: t('appUser.colBindTime'), dataIndex: 'bindTime', width: 150 },
+])
 
 const pagination = computed(() => ({
   current: currentPage.value,
   pageSize: pageSize.value,
   total: total.value,
-  showTotal: (t: number) => `共 ${t} 个账号`,
+  showTotal: (n: number) => t('appUser.totalCount', { n }),
   showSizeChanger: false,
 }))
 
@@ -129,26 +136,19 @@ async function loadList() {
   loading.value = true
   try {
     const res: any = await http.get('/device/appUsers', {
-      params: {
-        pageNo: currentPage.value,
-        pageSize: pageSize.value,
-        email: searchText.value || undefined,
-      },
+      params: { pageNo: currentPage.value, pageSize: pageSize.value, email: searchText.value || undefined },
     })
     const data = res.result || res
     userList.value = data.records || []
     total.value = data.total || 0
   } catch {
-    message.error('加载 App 账号列表失败')
+    message.error(t('appUser.loadFailed'))
   } finally {
     loading.value = false
   }
 }
 
-function onSearch() {
-  currentPage.value = 1
-  loadList()
-}
+function onSearch() { currentPage.value = 1; loadList() }
 
 function onTableChange(pag: any) {
   currentPage.value = pag.current
@@ -165,7 +165,7 @@ async function openBindings(user: any) {
     const res: any = await http.get(`/device/appUsers/${user.id}/bindings`)
     bindList.value = res.result || res || []
   } catch {
-    message.error('加载绑定列表失败')
+    message.error(t('appUser.loadBindFailed'))
   } finally {
     bindLoading.value = false
   }
@@ -176,99 +176,28 @@ function goDevice(sn: string) {
   router.push({ path: '/devices', query: { id: sn } })
 }
 
-onMounted(() => {
-  loadList()
-})
+onMounted(() => { loadList() })
 </script>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-}
-.search-input {
-  width: 280px;
-}
-:deep(.search-input .ant-input) {
-  background: #fff;
-  border-color: #e2e8f0;
-  color: #1a1a2e;
-}
-:deep(.search-input .ant-input::placeholder) {
-  color: #94a3b8;
-}
-.table-wrapper {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-:deep(.ant-table) {
-  background: #fff;
-  color: #1a1a2e;
-}
-:deep(.ant-table-thead > tr > th) {
-  background: #fafbfc !important;
-  color: #64748b !important;
-  border-bottom: 1px solid #e2e8f0 !important;
-  font-weight: 500;
-}
-:deep(.ant-table-tbody > tr > td) {
-  background: #fff !important;
-  border-bottom: 1px solid #f0f0f0 !important;
-  color: #1a1a2e;
-}
-:deep(.ant-table-tbody > tr:hover > td) {
-  background: #f5f7fa !important;
-}
-.status-badge {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.status-online {
-  background: rgba(0, 255, 136, 0.12);
-  color: #2d9d78;
-}
-.status-offline {
-  background: rgba(148, 163, 184, 0.12);
-  color: #94a3b8;
-}
-.sn-link {
-  color: #3b82f6;
-  cursor: pointer;
-  font-family: 'Courier New', monospace;
-  font-weight: 500;
-}
-.sn-link:hover {
-  text-decoration: underline;
-}
-.bind-empty {
-  text-align: center;
-  color: #94a3b8;
-  padding: 32px 0;
-  font-size: 13px;
-}
-.bind-empty-icon {
-  font-size: 36px;
-  margin-bottom: 8px;
-  opacity: 0.5;
-}
-:deep(.dark-modal .ant-modal-content) {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-}
-:deep(.dark-modal .ant-modal-header) {
-  background: transparent;
-  border-bottom: 1px solid #e2e8f0;
-}
-:deep(.dark-modal .ant-modal-title) {
-  color: #1a1a2e;
-}
-:deep(.dark-modal .ant-modal-close-x) {
-  color: #94a3b8;
-}
+.toolbar { display: flex; align-items: center; margin-bottom: 16px; }
+.search-input { width: 280px; }
+:deep(.search-input .ant-input) { background: #fff; border-color: #e2e8f0; color: #1a1a2e; }
+:deep(.search-input .ant-input::placeholder) { color: #94a3b8; }
+.table-wrapper { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+:deep(.ant-table) { background: #fff; color: #1a1a2e; }
+:deep(.ant-table-thead > tr > th) { background: #fafbfc !important; color: #64748b !important; border-bottom: 1px solid #e2e8f0 !important; font-weight: 500; }
+:deep(.ant-table-tbody > tr > td) { background: #fff !important; border-bottom: 1px solid #f0f0f0 !important; color: #1a1a2e; }
+:deep(.ant-table-tbody > tr:hover > td) { background: #f5f7fa !important; }
+.status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+.status-online { background: rgba(0, 255, 136, 0.12); color: #2d9d78; }
+.status-offline { background: rgba(148, 163, 184, 0.12); color: #94a3b8; }
+.sn-link { color: #3b82f6; cursor: pointer; font-family: 'Courier New', monospace; font-weight: 500; }
+.sn-link:hover { text-decoration: underline; }
+.bind-empty { text-align: center; color: #94a3b8; padding: 32px 0; font-size: 13px; }
+.bind-empty-icon { font-size: 36px; margin-bottom: 8px; opacity: 0.5; }
+:deep(.dark-modal .ant-modal-content) { background: #fff; border: 1px solid #e2e8f0; }
+:deep(.dark-modal .ant-modal-header) { background: transparent; border-bottom: 1px solid #e2e8f0; }
+:deep(.dark-modal .ant-modal-title) { color: #1a1a2e; }
+:deep(.dark-modal .ant-modal-close-x) { color: #94a3b8; }
 </style>

@@ -1,9 +1,9 @@
 <template>
   <div class="management-view">
     <a-tabs v-model:activeKey="activeTab" class="management-tabs">
-      <a-tab-pane key="ledger" tab="设备台账" />
-      <a-tab-pane key="firmware" tab="固件库" />
-      <a-tab-pane key="appUser" tab="App 用户" />
+      <a-tab-pane key="ledger" :tab="t('management.tabLedger')" />
+      <a-tab-pane key="firmware" :tab="t('management.tabFirmware')" />
+      <a-tab-pane key="appUser" :tab="t('management.tabAppUser')" />
     </a-tabs>
 
     <FirmwareTab v-if="activeTab === 'firmware'" />
@@ -14,20 +14,20 @@
     <div class="toolbar">
       <a-input-search
         v-model:value="searchText"
-        placeholder="按序列号搜索..."
+        :placeholder="t('management.searchSn')"
         allow-clear
         class="search-input"
         @search="onSearch"
       />
       <div class="toolbar-actions">
         <span v-if="importResult" class="import-result">
-          <span class="import-success">成功 {{ importResult.success }} 条</span>
-          <span v-if="importResult.fail > 0" class="import-fail"> / 失败 {{ importResult.fail }} 条</span>
+          <span class="import-success">{{ t('management.importSuccessCount', { n: importResult.success }) }}</span>
+          <span v-if="importResult.fail > 0" class="import-fail"> / {{ t('management.importFailCount', { n: importResult.fail }) }}</span>
         </span>
         <a-upload :show-upload-list="false" :before-upload="handleImport" accept=".xlsx,.xls">
-          <a-button class="import-btn">批量导入 Excel</a-button>
+          <a-button class="import-btn">{{ t('management.importExcel') }}</a-button>
         </a-upload>
-        <a-button type="primary" class="add-btn" @click="openAddModal">+ 新增设备</a-button>
+        <a-button type="primary" class="add-btn" @click="openAddModal">{{ t('management.addDevice') }}</a-button>
       </div>
     </div>
 
@@ -56,15 +56,15 @@
             </span>
           </template>
           <template v-else-if="column.dataIndex === 'action'">
-            <a-button type="link" size="small" class="edit-btn" @click="openEditModal(record)">维护</a-button>
+            <a-button type="link" size="small" class="edit-btn" @click="openEditModal(record)">{{ t('common.edit') }}</a-button>
             <a-popconfirm
               v-if="!record.onlineStatus || record.onlineStatus === 'UNACTIVATED'"
-              title="确定删除该设备？"
-              ok-text="删除"
-              cancel-text="取消"
+              :title="t('management.confirmDelete')"
+              :ok-text="t('common.delete')"
+              :cancel-text="t('common.cancel')"
               @confirm="handleDelete(record)"
             >
-              <a-button type="link" size="small" danger>删除</a-button>
+              <a-button type="link" size="small" danger>{{ t('common.delete') }}</a-button>
             </a-popconfirm>
           </template>
         </template>
@@ -74,7 +74,7 @@
     <!-- 新增/修改设备 Modal -->
     <a-modal
       v-model:open="showModal"
-      :title="isEdit ? '修改设备' : '新增设备'"
+      :title="isEdit ? t('management.editDevice') : t('management.addDeviceTitle')"
       :confirm-loading="submitLoading"
       class="dark-modal"
       @ok="handleSubmit"
@@ -84,19 +84,19 @@
         <a-form-item label="SN" :required="!isEdit">
           <a-input
             v-model:value="formData.sn"
-            placeholder="设备序列号"
+            :placeholder="t('management.snPlaceholder')"
             :disabled="isEdit"
             @blur="formData.sn = formData.sn.trim().replace(/\s/g, '')"
           />
         </a-form-item>
 
-        <a-form-item label="经销商" required>
-          <a-input v-model:value="formData.dealer" placeholder="经销商名称" />
+        <a-form-item :label="t('management.dealerLabel')" required>
+          <a-input v-model:value="formData.dealer" :placeholder="t('management.dealerPlaceholder')" />
         </a-form-item>
-        <a-form-item label="批次号">
-          <a-input v-model:value="formData.batchNo" placeholder="选填" />
+        <a-form-item :label="t('management.batchNoLabel')">
+          <a-input v-model:value="formData.batchNo" :placeholder="t('management.batchNoPlaceholder')" />
         </a-form-item>
-        <a-form-item label="出货日期">
+        <a-form-item :label="t('management.shipDateLabel')">
           <a-date-picker v-model:value="formData.shipDate" style="width: 100%" />
         </a-form-item>
       </a-form>
@@ -109,12 +109,14 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import http from '@/api/http'
 import FirmwareTab from './FirmwareTab.vue'
 import AppUserTab from './AppUserTab.vue'
 import { getDeviceList } from '@/api/device'
 
+const { t } = useI18n()
 const router = useRouter()
 
 // ==================== 状态 ====================
@@ -144,21 +146,21 @@ const formData = reactive({
 const importResult = ref<{ success: number; fail: number } | null>(null)
 
 // ==================== 表格列 ====================
-const columns = [
-  { title: '序列号', dataIndex: 'sn', width: 160, fixed: 'left' as const },
-  { title: '设备类型', dataIndex: 'deviceType', width: 110 },
-  { title: '经销商', dataIndex: 'dealer', width: 120 },
-  { title: '批次号', dataIndex: 'batchNo', width: 110 },
-  { title: '出货日期', dataIndex: 'shipDate', width: 120 },
-  { title: '在线状态', dataIndex: 'onlineStatus', width: 100 },
-  { title: '操作', dataIndex: 'action', width: 90, fixed: 'right' as const },
-]
+const columns = computed(() => [
+  { title: t('management.colSn'), dataIndex: 'sn', width: 160, fixed: 'left' as const },
+  { title: t('management.colDeviceType'), dataIndex: 'deviceType', width: 110 },
+  { title: t('management.colDealer'), dataIndex: 'dealer', width: 120 },
+  { title: t('management.colBatchNo'), dataIndex: 'batchNo', width: 110 },
+  { title: t('management.colShipDate'), dataIndex: 'shipDate', width: 120 },
+  { title: t('management.colOnlineStatus'), dataIndex: 'onlineStatus', width: 100 },
+  { title: t('management.colAction'), dataIndex: 'action', width: 90, fixed: 'right' as const },
+])
 
 const pagination = computed(() => ({
   current: currentPage.value,
   pageSize: pageSize.value,
   total: total.value,
-  showTotal: (t: number) => `共 ${t} 台`,
+  showTotal: (n: number) => t('management.totalDevices', { n }),
   showSizeChanger: false,
 }))
 
@@ -176,7 +178,7 @@ async function loadList() {
     deviceList.value = data.records || []
     total.value = data.total || 0
   } catch {
-    message.error('加载设备列表失败')
+    message.error(t('management.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -202,12 +204,12 @@ watch(statusFilter, () => {
 // ==================== 在线状态 ====================
 function onlineStatusLabel(status: string): string {
   const map: Record<string, string> = {
-    ONLINE: '在线',
-    OFFLINE: '离线',
-    FAULT: '故障',
-    UNACTIVATED: '未激活',
+    ONLINE: t('common.online'),
+    OFFLINE: t('common.offline'),
+    FAULT: t('common.fault'),
+    UNACTIVATED: t('common.unactivated'),
   }
-  return map[status] || '未激活'
+  return map[status] || t('common.unactivated')
 }
 
 // ==================== 跳转设备视图 ====================
@@ -235,11 +237,11 @@ function openEditModal(record: any) {
 
 async function handleSubmit() {
   if (!isEdit.value && !formData.sn) {
-    message.warning('请填写 SN')
+    message.warning(t('management.requiredSn'))
     return
   }
   if (!formData.dealer) {
-    message.warning('请填写经销商')
+    message.warning(t('management.requiredDealer'))
     return
   }
   submitLoading.value = true
@@ -257,7 +259,7 @@ async function handleSubmit() {
     } else {
       await http.post('/device/add', body)
     }
-    message.success(isEdit.value ? '修改成功' : '新增设备成功')
+    message.success(isEdit.value ? t('common.editSuccess') : t('management.addDeviceSuccess'))
     showModal.value = false
     resetForm()
     loadList()
@@ -271,7 +273,7 @@ async function handleSubmit() {
 async function handleDelete(record: any) {
   try {
     await http.delete('/device/delete', { params: { id: record.id } })
-    message.success('删除成功')
+    message.success(t('common.deleteSuccess'))
     loadList()
   } catch {
     // http 拦截器已处理错误提示
@@ -300,10 +302,10 @@ async function handleImport(file: File) {
       success: data.success ?? data.successCount ?? 0,
       fail: data.fail ?? data.failCount ?? 0,
     }
-    message.success(`导入完成：成功 ${importResult.value.success} 条`)
+    message.success(t('management.importComplete', { n: importResult.value.success }))
     loadList()
   } catch {
-    message.error('导入失败')
+    message.error(t('management.importFailed'))
   }
   return false // 阻止 ant-upload 自动上传
 }
