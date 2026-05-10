@@ -10,7 +10,7 @@ import { toFileUrl } from '@/utils/file'
 import { setLang } from '@/i18n'
 import type { LangType } from '@/i18n'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 
@@ -154,13 +154,17 @@ async function handleChangePwd() {
 }
 
 // 语言切换
-const langOptions: { key: LangType; label: string }[] = [
-  { key: 'zh', label: '简体中文' },
-  { key: 'en', label: 'English' },
-  { key: 'tw', label: '繁體中文' },
-  { key: 'es', label: 'Español' },
-  { key: 'pt', label: 'Português' },
+const langOptions: { key: LangType; label: string; short: string }[] = [
+  { key: 'zh', label: '简体中文', short: '中' },
+  { key: 'en', label: 'English',  short: 'EN' },
+  { key: 'tw', label: '繁體中文', short: '繁' },
+  { key: 'es', label: 'Español',  short: 'ES' },
+  { key: 'pt', label: 'Português',short: 'PT' },
 ]
+
+const currentLangShort = computed(
+  () => langOptions.find(o => o.key === locale.value)?.short ?? 'EN'
+)
 
 function handleLangChange(lang: LangType) {
   setLang(lang)
@@ -189,10 +193,11 @@ function handleLangChange(lang: LangType) {
         <!-- 语言切换 -->
         <a-dropdown>
           <div class="nav-lang-btn">
-            <GlobalOutlined style="font-size: 16px;" />
+            <GlobalOutlined style="font-size: 15px;" />
+            <span class="nav-lang-short">{{ currentLangShort }}</span>
           </div>
           <template #overlay>
-            <a-menu style="background: #fff; border: 1px solid #e2e8f0;">
+            <a-menu :selectedKeys="[locale]" style="background: #fff; border: 1px solid #e2e8f0;">
               <a-menu-item
                 v-for="opt in langOptions"
                 :key="opt.key"
@@ -360,8 +365,8 @@ function handleLangChange(lang: LangType) {
 .nav-lang-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
+  gap: 4px;
+  padding: 0 8px;
   height: 32px;
   border-radius: 8px;
   color: #64748b;
@@ -372,6 +377,12 @@ function handleLangChange(lang: LangType) {
 .nav-lang-btn:hover {
   color: #3b82f6;
   background: rgba(59, 130, 246, 0.08);
+}
+
+.nav-lang-short {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .nav-user {
