@@ -91,7 +91,7 @@ const typeOptions = computed(() => [
   { label: t('oplog.typeOta'), value: 'OTA_UPGRADE' },
   { label: t('oplog.typeDlm'), value: 'DLM_CONFIG' },
   { label: t('oplog.typeReboot'), value: 'REMOTE_REBOOT' },
-  { label: t('oplog.typeReset'), value: 'REMOTE_RESET' },
+  // { label: t('oplog.typeReset'), value: 'REMOTE_RESET' }, // 暂未实现
 ])
 
 function typeDotClass(typeKey: string): string {
