@@ -30,7 +30,7 @@
                   <div class="info-version">{{ latestInfo.latestVersion || t('common.none') }}</div>
                   <div v-if="latestInfo.previousVersion" class="info-prev">{{ t('firmware.prevVersion') }}: {{ latestInfo.previousVersion }}</div>
                   <div v-if="latestInfo.versionLog" class="info-log-title">{{ t('firmware.changelog') }}:</div>
-                  <pre v-if="latestInfo.versionLog" class="info-log">{{ latestInfo.versionLog }}</pre>
+                  <pre v-if="latestInfo.versionLog" class="info-log">{{ latestInfo.versionLog.split('\n').slice(0, 10).join('\n') }}</pre>
                 </template>
                 <div v-else class="info-empty">{{ t('firmware.noReleasedVersion') }}</div>
               </div>
