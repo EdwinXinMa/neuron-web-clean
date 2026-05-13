@@ -223,7 +223,7 @@
               <span class="info-value highlight">
                 <template v-if="ctCurrentTotal > 0">
                   {{ ctCurrentTotal }} A
-                  <span v-if="selectedDevice.ctCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.ctCurrentA }} B:{{ selectedDevice.ctCurrentB }} C:{{ selectedDevice.ctCurrentC }})</span>
+                  <span v-if="selectedDevice.ctCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.ctCurrentA.toFixed(1) }} B:{{ selectedDevice.ctCurrentB.toFixed(1) }} C:{{ selectedDevice.ctCurrentC.toFixed(1) }})</span>
                 </template>
                 <template v-else>-</template>
               </span>
@@ -233,7 +233,7 @@
               <span class="info-value" style="color: #16a34a; font-weight: 600;">
                 <template v-if="chargingCurrentTotal > 0">
                   {{ chargingCurrentTotal }} A
-                  <span v-if="selectedDevice.totalChargingCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.totalChargingCurrentA }} B:{{ selectedDevice.totalChargingCurrentB }} C:{{ selectedDevice.totalChargingCurrentC }})</span>
+                  <span v-if="selectedDevice.totalChargingCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.totalChargingCurrentA.toFixed(1) }} B:{{ selectedDevice.totalChargingCurrentB.toFixed(1) }} C:{{ selectedDevice.totalChargingCurrentC.toFixed(1) }})</span>
                 </template>
                 <template v-else>-</template>
               </span>
@@ -243,7 +243,7 @@
               <span class="info-value">
                 <template v-if="loadCurrentTotal > 0">
                   {{ loadCurrentTotal }} A
-                  <span v-if="selectedDevice.loadCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.loadCurrentA }} B:{{ selectedDevice.loadCurrentB }} C:{{ selectedDevice.loadCurrentC }})</span>
+                  <span v-if="selectedDevice.loadCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.loadCurrentA.toFixed(1) }} B:{{ selectedDevice.loadCurrentB.toFixed(1) }} C:{{ selectedDevice.loadCurrentC.toFixed(1) }})</span>
                 </template>
                 <template v-else>-</template>
               </span>
