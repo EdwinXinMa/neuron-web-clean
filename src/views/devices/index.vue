@@ -303,8 +303,22 @@
                 </div>
                 <div class="pile-card-right">
                   <template v-if="pile.allocatedCurrentA != null">
-                    <span v-if="!pile.allocatedCurrentB && !pile.allocatedCurrentC" class="pile-current">{{ pile.allocatedCurrentA }} A</span>
-                    <span v-else class="pile-current">A: {{ pile.allocatedCurrentA }} / B: {{ pile.allocatedCurrentB }} / C: {{ pile.allocatedCurrentC }} A</span>
+                    <span v-if="!pile.allocatedCurrentB && !pile.allocatedCurrentC" class="pile-current">{{ pile.allocatedCurrentA }} <span class="pile-current-unit">A</span></span>
+                    <div v-else class="pile-current-three">
+                      <div class="pile-current-phase">
+                        <span class="phase-label">A</span>
+                        <span class="phase-value">{{ pile.allocatedCurrentA }}</span>
+                      </div>
+                      <div class="pile-current-phase">
+                        <span class="phase-label">B</span>
+                        <span class="phase-value">{{ pile.allocatedCurrentB }}</span>
+                      </div>
+                      <div class="pile-current-phase">
+                        <span class="phase-label">C</span>
+                        <span class="phase-value">{{ pile.allocatedCurrentC }}</span>
+                      </div>
+                      <span class="pile-current-unit">A</span>
+                    </div>
                   </template>
                   <!-- <a-tooltip v-if="pile.snr != null">
                     <template #title>
@@ -2244,7 +2258,7 @@
 
   .pile-card-right {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
   }
 
@@ -2252,6 +2266,40 @@
     font-size: 15px;
     font-weight: 700;
     color: #1a3a5c;
+  }
+
+  .pile-current-three {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .pile-current-phase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .phase-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8a9ab0;
+    line-height: 1.2;
+  }
+
+  .phase-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a3a5c;
+    line-height: 1;
+  }
+
+  .pile-current-unit {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1a3a5c;
+    line-height: 1;
   }
 
   .pile-signal {
