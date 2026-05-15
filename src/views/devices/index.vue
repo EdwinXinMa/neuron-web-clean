@@ -302,7 +302,10 @@
                   </template>
                 </div>
                 <div class="pile-card-right">
-                  <span v-if="pile.allocatedCurrent != null" class="pile-current">{{ pile.allocatedCurrent }} A</span>
+                  <template v-if="pile.allocatedCurrentA != null">
+                    <span v-if="!pile.allocatedCurrentB && !pile.allocatedCurrentC" class="pile-current">{{ pile.allocatedCurrentA }} A</span>
+                    <span v-else class="pile-current">A: {{ pile.allocatedCurrentA }} / B: {{ pile.allocatedCurrentB }} / C: {{ pile.allocatedCurrentC }} A</span>
+                  </template>
                   <!-- <a-tooltip v-if="pile.snr != null">
                     <template #title>
                       <div>PLC 信噪比: {{ pile.snr }}</div>
@@ -561,7 +564,9 @@
             for (const charger of deviceDetail.value.chargers) {
               const dp = dlmPileMap[charger.sn];
               if (!dp) { continue; }
-              charger.allocatedCurrent = dp.allocatedCurrent;
+              charger.allocatedCurrentA = dp.allocatedCurrentA;
+              charger.allocatedCurrentB = dp.allocatedCurrentB;
+              charger.allocatedCurrentC = dp.allocatedCurrentC;
               charger.connectStatus = dp.connectStatus;
               charger.charge_EVStatus = dp.charge_EVStatus;
               charger.energy = dp.energy;
@@ -846,7 +851,9 @@
         model: pile.model || pile.deviceModel || '-',
         status: pile.onlineStatus ? pile.onlineStatus.toLowerCase() : 'offline',
         // DLMStatus 桩级别数据
-        allocatedCurrent: pile.allocatedCurrent ?? null,
+        allocatedCurrentA: pile.allocatedCurrentA ?? null,
+        allocatedCurrentB: pile.allocatedCurrentB ?? null,
+        allocatedCurrentC: pile.allocatedCurrentC ?? null,
         connectStatus: pile.connectStatus ?? null,
         chargeEVStatus: pile.charge_EVStatus ?? null,
         energy: pile.energy ?? null,
