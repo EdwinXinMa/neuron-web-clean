@@ -243,7 +243,7 @@
               <span class="info-value">
                 <template v-if="loadCurrentTotal > 0">
                   {{ loadCurrentTotal }} A
-                  <span v-if="selectedDevice.loadCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.loadCurrentA.toFixed(1) }} B:{{ selectedDevice.loadCurrentB.toFixed(1) }} C:{{ selectedDevice.loadCurrentC.toFixed(1) }})</span>
+                  <span v-if="selectedDevice.phaseType === 'three'" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.loadCurrentA.toFixed(1) }} B:{{ selectedDevice.loadCurrentB.toFixed(1) }} C:{{ selectedDevice.loadCurrentC.toFixed(1) }})</span>
                 </template>
                 <template v-else>-</template>
               </span>
@@ -303,7 +303,7 @@
                 </div>
                 <div class="pile-card-right">
                   <template v-if="pile.allocatedCurrentA != null">
-                    <span v-if="!pile.allocatedCurrentB && !pile.allocatedCurrentC" class="pile-current">{{ pile.allocatedCurrentA }} <span class="pile-current-unit">A</span></span>
+                    <span v-if="selectedDevice.phaseType !== 'three'" class="pile-current">{{ pile.allocatedCurrentA }} <span class="pile-current-unit">A</span></span>
                     <div v-else class="pile-current-three">
                       <div class="pile-current-phase">
                         <span class="phase-label">A</span>
