@@ -168,6 +168,7 @@ export default {
     sectionPower: 'Home Power (CT Data)', currentLoad: 'Current Load',
     totalCurrent: 'Total Current', chargingCurrent: 'Charging Current', homeCurrent: 'Home Current',
     currentThreshold: 'Current Limit', noEditWhileCharging: 'Cannot edit while charging', modify: 'Edit',
+    showDetail: 'Show Detail', hideDetail: 'Hide Detail',
     sectionChargers: 'Chargers', batchSetMode: 'Batch Set Mode', noChargers: 'No chargers',
     connectorLabel: 'Gun {n}', energyLabel: 'Energy',
     tabAlerts: 'Recent Alerts', tabCharging: 'Charging Records', tabLogs: 'Recent Ops',

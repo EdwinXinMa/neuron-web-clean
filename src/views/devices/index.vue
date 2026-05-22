@@ -190,65 +190,103 @@
 
           <!-- 右列：家庭电力 -->
           <div class="detail-section">
-            <div class="section-title">
+            <div class="section-title" style="display:flex; align-items:center;">
               <ThunderboltOutlined class="section-icon" /> {{ t('device.sectionPower') }}
-              <BarChartOutlined
-                v-if="selectedDevice.status !== 'unactivated'"
-                class="chart-icon"
-                @click="openDlmChart"
-              />
-            </div>
-            <!-- 电流进度条 -->
-            <div v-if="ctCurrentTotal > 0" class="current-bar-wrapper">
-              <div class="current-bar-header">
-                <span class="current-bar-label">{{ t('device.currentLoad') }}</span>
-                <span class="current-bar-value">{{ ctCurrentTotal }} / {{ selectedDevice.ctMax }} A</span>
-              </div>
-              <div class="current-bar-bg">
-                <div
-                  class="current-bar-fill"
-                  :style="{ width: Math.min(ctCurrentTotal / selectedDevice.ctMax * 100, 100) + '%', background: currentBarColor }"
-                ></div>
+              <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+                <BarChartOutlined
+                  v-if="selectedDevice.status !== 'unactivated'"
+                  class="chart-icon"
+                  style="float:none;"
+                  @click="openDlmChart"
+                />
+                <a-tooltip :title="showCurrentDetail ? t('device.hideDetail') : t('device.showDetail')">
+                  <EyeInvisibleOutlined v-if="showCurrentDetail" class="detail-toggle-btn" @click="showCurrentDetail = false" />
+                  <EyeOutlined v-else class="detail-toggle-btn" @click="showCurrentDetail = true" />
+                </a-tooltip>
               </div>
             </div>
-            <a-alert
-              v-if="selectedDevice.ctMax > 0 && ctCurrentTotal / selectedDevice.ctMax >= 0.9"
-              type="warning"
-              show-icon
-              :message="`${ctCurrentTotal}A / ${selectedDevice.ctMax}A (${Math.round(ctCurrentTotal / selectedDevice.ctMax * 100)}%)`"
-              class="current-warning"
-            />
-            <div class="info-row">
-              <span class="info-label">{{ t('device.totalCurrent') }}</span>
-              <span class="info-value highlight">
-                <template v-if="ctCurrentTotal > 0">
-                  {{ ctCurrentTotal }} A
-                  <span v-if="selectedDevice.ctCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.ctCurrentA.toFixed(1) }} B:{{ selectedDevice.ctCurrentB.toFixed(1) }} C:{{ selectedDevice.ctCurrentC.toFixed(1) }})</span>
+
+            <!-- 单相 -->
+            <template v-if="!isThreePhase">
+              <div class="current-bar-wrapper">
+                <div class="current-bar-header">
+                  <span class="current-bar-label">{{ t('device.currentLoad') }}</span>
+                  <span class="current-bar-value">{{ selectedDevice.ctCurrentA.toFixed(1) }} / {{ selectedDevice.ctMax }} A</span>
+                </div>
+                <div class="current-bar-bg">
+                  <div class="current-bar-fill" :style="{ width: Math.min(selectedDevice.ctCurrentA / selectedDevice.ctMax * 100, 100) + '%', background: barColor(selectedDevice.ctCurrentA, selectedDevice.ctMax) }"></div>
+                </div>
+              </div>
+              <template v-if="showCurrentDetail">
+                <a-tooltip color="#1e293b">
+                  <template #title>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#06b6d4; flex-shrink:0;"></span>
+                      <span>{{ t('device.homeCurrent') }}：{{ selectedDevice.loadCurrentA.toFixed(1) }} A</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                      <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; flex-shrink:0;"></span>
+                      <span>{{ t('device.chargingCurrent') }}：{{ selectedDevice.totalChargingCurrentA.toFixed(1) }} A</span>
+                    </div>
+                  </template>
+                  <div class="current-bar-wrapper current-bar-detail">
+                    <div class="current-bar-bg">
+                      <div class="current-bar-split">
+                        <div :style="{ width: Math.min(selectedDevice.loadCurrentA / selectedDevice.ctMax * 100, 100) + '%', background: '#06b6d4', borderRadius: '4px' }"></div>
+                        <div :style="{ width: Math.min(Math.max(selectedDevice.ctCurrentA - selectedDevice.loadCurrentA, 0) / selectedDevice.ctMax * 100, 100) + '%', background: '#22c55e', borderRadius: '4px' }"></div>
+                      </div>
+                    </div>
+                  </div>
+                </a-tooltip>
+                <div class="current-bar-legend">
+                  <span><i style="background:#06b6d4;"></i>{{ t('device.homeCurrent') }}</span>
+                  <span><i style="background:#22c55e;"></i>{{ t('device.chargingCurrent') }}</span>
+                </div>
+              </template>
+            </template>
+
+            <!-- 三相 -->
+            <template v-else>
+              <template v-for="phase in ['A', 'B', 'C']" :key="phase">
+                <div class="current-bar-wrapper">
+                  <div class="current-bar-header">
+                    <span class="current-bar-label current-bar-phase">{{ phase }}</span>
+                    <span class="current-bar-value">{{ selectedDevice['ctCurrent' + phase].toFixed(1) }} / {{ selectedDevice.ctMax }} A</span>
+                  </div>
+                  <div class="current-bar-bg">
+                    <div class="current-bar-fill" :style="{ width: Math.min(selectedDevice['ctCurrent' + phase] / selectedDevice.ctMax * 100, 100) + '%', background: barColor(selectedDevice['ctCurrent' + phase], selectedDevice.ctMax) }"></div>
+                  </div>
+                </div>
+                <template v-if="showCurrentDetail">
+                  <a-tooltip color="#1e293b">
+                    <template #title>
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#06b6d4; flex-shrink:0;"></span>
+                        <span>{{ t('device.homeCurrent') }}：{{ selectedDevice['loadCurrent' + phase].toFixed(1) }} A</span>
+                      </div>
+                      <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; flex-shrink:0;"></span>
+                        <span>{{ t('device.chargingCurrent') }}：{{ selectedDevice['totalChargingCurrent' + phase].toFixed(1) }} A</span>
+                      </div>
+                    </template>
+                    <div class="current-bar-wrapper current-bar-detail">
+                      <div class="current-bar-bg">
+                        <div class="current-bar-split">
+                          <div :style="{ width: Math.min(selectedDevice['loadCurrent' + phase] / selectedDevice.ctMax * 100, 100) + '%', background: '#06b6d4', borderRadius: '4px' }"></div>
+                          <div :style="{ width: Math.min(Math.max(selectedDevice['ctCurrent' + phase] - selectedDevice['loadCurrent' + phase], 0) / selectedDevice.ctMax * 100, 100) + '%', background: '#22c55e', borderRadius: '4px' }"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </a-tooltip>
                 </template>
-                <template v-else>-</template>
-              </span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">{{ t('device.chargingCurrent') }}</span>
-              <span class="info-value" style="color: #16a34a; font-weight: 600;">
-                <template v-if="chargingCurrentTotal > 0">
-                  {{ chargingCurrentTotal }} A
-                  <span v-if="selectedDevice.totalChargingCurrentB > 0" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.totalChargingCurrentA.toFixed(1) }} B:{{ selectedDevice.totalChargingCurrentB.toFixed(1) }} C:{{ selectedDevice.totalChargingCurrentC.toFixed(1) }})</span>
-                </template>
-                <template v-else>-</template>
-              </span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">{{ t('device.homeCurrent') }}</span>
-              <span class="info-value">
-                <template v-if="loadCurrentTotal > 0">
-                  {{ loadCurrentTotal }} A
-                  <span v-if="selectedDevice.phaseType === 'three'" style="font-size:11px; color:#64748b; margin-left:4px;">(A:{{ selectedDevice.loadCurrentA.toFixed(1) }} B:{{ selectedDevice.loadCurrentB.toFixed(1) }} C:{{ selectedDevice.loadCurrentC.toFixed(1) }})</span>
-                </template>
-                <template v-else>-</template>
-              </span>
-            </div>
-            <div class="info-row">
+              </template>
+              <div v-if="showCurrentDetail" class="current-bar-legend">
+                <span><i style="background:#06b6d4;"></i>{{ t('device.homeCurrent') }}</span>
+                <span><i style="background:#22c55e;"></i>{{ t('device.chargingCurrent') }}</span>
+              </div>
+            </template>
+
+            <div class="info-row" style="margin-top:4px;">
               <span class="info-label">{{ t('device.currentThreshold') }}</span>
               <span class="info-value">
                 {{ selectedDevice.ctMax }} A
@@ -256,14 +294,6 @@
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
               </span>
             </div>
-            <!-- <div class="info-row">
-              <span class="info-label">电压</span>
-              <span class="info-value">{{ selectedDevice.voltage > 0 ? selectedDevice.voltage + ' V' : '-' }}</span>
-            </div> -->
-            <!-- <div class="info-row">
-              <span class="info-label">总功率</span>
-              <span class="info-value">{{ selectedDevice.totalPower > 0 ? selectedDevice.totalPower + ' W' : '-' }}</span>
-            </div> -->
           </div>
 
           <!-- 下挂充电桩（跨两列） -->
@@ -303,7 +333,7 @@
                 </div>
                 <div class="pile-card-right">
                   <template v-if="pile.allocatedCurrentA != null">
-                    <span v-if="selectedDevice.phaseType !== 'three'" class="pile-current">{{ pile.allocatedCurrentA }} <span class="pile-current-unit">A</span></span>
+                    <span v-if="!isThreePhase" class="pile-current">{{ pile.allocatedCurrentA }} <span class="pile-current-unit">A</span></span>
                     <div v-else class="pile-current-three">
                       <div class="pile-current-phase">
                         <span class="phase-label">A</span>
@@ -534,7 +564,7 @@
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
-  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined } from '@ant-design/icons-vue';
+  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons-vue';
 
   const { t } = useI18n();
 
@@ -626,6 +656,7 @@
   const currentPage = ref(1);
   const pageSize = 10;
   const logTab = ref('alerts');
+  const showCurrentDetail = ref(false);
   const loading = ref(false);
   const detailLoading = ref(false);
 
@@ -1041,13 +1072,30 @@
     return +(selectedDevice.value.loadCurrentA + selectedDevice.value.loadCurrentB + selectedDevice.value.loadCurrentC).toFixed(1);
   });
 
-  const currentBarColor = computed(() => {
-    if (!selectedDevice.value) return '#16a34a';
-    const ratio = ctCurrentTotal.value / selectedDevice.value.ctMax;
-    if (ratio >= 0.9) return '#dc2626';
-    if (ratio >= 0.7) return '#d97706';
-    return '#16a34a';
+  /** 三相判断：优先用 phaseType 字段；未设置时兜底检测 B/C 相是否有数据 */
+  const isThreePhase = computed(() => {
+    if (!selectedDevice.value) {
+      return false;
+    }
+    if (selectedDevice.value.phaseType === 'three') {
+      return true;
+    }
+    if (selectedDevice.value.phaseType === 'single') {
+      return false;
+    }
+    return selectedDevice.value.ctCurrentB > 0 || selectedDevice.value.totalChargingCurrentB > 0;
   });
+
+  function barColor(current: number, max: number): string {
+    const ratio = max > 0 ? current / max : 0;
+    if (ratio >= 0.9) {
+      return '#dc2626';
+    }
+    if (ratio >= 0.7) {
+      return '#d97706';
+    }
+    return '#3b82f6';
+  }
 
   function chargerTagColor(status: string): string {
     const map: Record<string, string> = {
@@ -2723,6 +2771,57 @@
   }
   .chart-icon:hover {
     color: #3b82f6;
+  }
+
+  /* ========== 电流明细切换按钮 ========== */
+  .detail-toggle-btn {
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+  .detail-toggle-btn:hover {
+    color: #3b82f6;
+  }
+
+  /* ========== 电流分拆进度条 ========== */
+  .current-bar-detail {
+    margin-top: -2px;
+    margin-bottom: 10px;
+  }
+  .current-bar-split {
+    display: flex;
+    height: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .current-bar-split > div {
+    height: 100%;
+    transition: width 0.5s ease, background 0.5s ease;
+  }
+  .current-bar-phase {
+    font-weight: 700;
+    color: #475569;
+  }
+  .current-bar-legend {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+  .current-bar-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #64748b;
+  }
+  .current-bar-legend i {
+    display: inline-block;
+    width: 20px;
+    height: 4px;
+    border-radius: 2px;
   }
 
   /* ========== DLM Chart Modal ========== */

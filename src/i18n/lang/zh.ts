@@ -168,6 +168,7 @@ export default {
     sectionPower: '家庭电力（CT 数据）', currentLoad: '电流负载',
     totalCurrent: '总电流', chargingCurrent: '充电电流', homeCurrent: '家用电流',
     currentThreshold: '电流阈值', noEditWhileCharging: '充电中禁止修改', modify: '修改',
+    showDetail: '展开明细', hideDetail: '收起明细',
     sectionChargers: '下挂充电桩', batchSetMode: '批量设置模式', noChargers: '暂无下挂充电桩',
     connectorLabel: '枪 {n}', energyLabel: '电量',
     tabAlerts: '最近告警', tabCharging: '充电记录', tabLogs: '最近操作',
