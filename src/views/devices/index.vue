@@ -523,7 +523,7 @@
         <div class="dlm-chart-title">{{ t('device.dlmChartTitle') }}</div>
       </div>
       <div class="dlm-chart-toolbar">
-        <a-radio-group v-model:value="chartPhase" size="small" @change="onChartPhaseChange">
+        <a-radio-group v-if="isThreePhase" v-model:value="chartPhase" size="small" @change="onChartPhaseChange">
           <a-radio-button value="A">{{ t('device.phaseA') }}</a-radio-button>
           <a-radio-button value="B">{{ t('device.phaseB') }}</a-radio-button>
           <a-radio-button value="C">{{ t('device.phaseC') }}</a-radio-button>
