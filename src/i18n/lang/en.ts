@@ -184,7 +184,7 @@ export default {
     phaseTotal: 'Total', phaseA: 'Phase A', phaseB: 'Phase B', phaseC: 'Phase C',
     range1h: '1 Hour', range6h: '6 Hours', range24h: '24 Hours', range7d: '7 Days',
     noChartData: 'No DLM history data',
-    chartLoadPower: 'Home Load', chartChargingPower: 'Charging', chartBreaker: 'Breaker Rating',
+    chartLoadPower: 'Home Load', chartChargingPower: 'Charging', chartBreaker: 'Current Threshold',
     chartCurrentTotal: 'Current - Total (A)', chartCurrentPhase: 'Current - Phase {phase} (A)',
     hbJustNow: 'Just now', hbMinutes: '{n}m ago', hbHours: '{n}h ago', hbDays: '{n}d ago',
     rebootSent: 'Reboot command sent', rebootFailed: 'Failed to send reboot command',

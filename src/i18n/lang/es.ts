@@ -185,7 +185,7 @@ export default {
     phaseTotal: 'Total', phaseA: 'Fase A', phaseB: 'Fase B', phaseC: 'Fase C',
     range1h: '1 hora', range6h: '6 horas', range24h: '24 horas', range7d: '7 días',
     noChartData: 'Sin datos DLM',
-    chartLoadPower: 'Hogar', chartChargingPower: 'Carga', chartBreaker: 'Interruptor',
+    chartLoadPower: 'Hogar', chartChargingPower: 'Carga', chartBreaker: 'Umbral de Corriente',
     chartCurrentTotal: 'Corriente - Total (A)', chartCurrentPhase: 'Corriente - Fase {phase} (A)',
     hbJustNow: 'Ahora mismo', hbMinutes: 'Hace {n}m', hbHours: 'Hace {n}h', hbDays: 'Hace {n}d',
     rebootSent: 'Comando de reinicio enviado', rebootFailed: 'Error al reiniciar',

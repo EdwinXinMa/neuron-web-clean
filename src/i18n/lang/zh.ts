@@ -184,7 +184,7 @@ export default {
     phaseTotal: '总', phaseA: 'A相', phaseB: 'B相', phaseC: 'C相',
     range1h: '1小时', range6h: '6小时', range24h: '24小时', range7d: '7天',
     noChartData: '暂无 DLM 历史数据',
-    chartLoadPower: '家庭用电', chartChargingPower: '充电用电', chartBreaker: '断路器额定值',
+    chartLoadPower: '家庭用电', chartChargingPower: '充电用电', chartBreaker: '电流阈值',
     chartCurrentTotal: '电流 - 总 (A)', chartCurrentPhase: '电流 - {phase}相 (A)',
     hbJustNow: '刚刚', hbMinutes: '{n}分钟前', hbHours: '{n}小时前', hbDays: '{n}天前',
     rebootSent: '重启命令已下发', rebootFailed: '重启命令下发失败',
