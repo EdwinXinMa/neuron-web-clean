@@ -524,7 +524,6 @@
       </div>
       <div class="dlm-chart-toolbar">
         <a-radio-group v-model:value="chartPhase" size="small" @change="onChartPhaseChange">
-          <a-radio-button value="total">{{ t('device.phaseTotal') }}</a-radio-button>
           <a-radio-button value="A">{{ t('device.phaseA') }}</a-radio-button>
           <a-radio-button value="B">{{ t('device.phaseB') }}</a-radio-button>
           <a-radio-button value="C">{{ t('device.phaseC') }}</a-radio-button>
@@ -1443,7 +1442,7 @@
   // ==================== DLM 历史图表 ====================
   const showDlmChart = ref(false);
   const chartRange = ref('1h');
-  const chartPhase = ref('total');
+  const chartPhase = ref('A');
   const chartLoading = ref(false);
   const chartEmpty = ref(false);
   let chartPoints: any[] = [];
@@ -1460,7 +1459,7 @@
     }
     showDlmChart.value = true;
     chartRange.value = '1h';
-    chartPhase.value = 'total';
+    chartPhase.value = 'A';
     await nextTick();
     loadChartData();
   }
@@ -1555,7 +1554,7 @@
       },
       yAxis: {
         type: 'value',
-        name: chartPhase.value === 'total' ? t('device.chartCurrentTotal') : t('device.chartCurrentPhase', { phase: chartPhase.value }),
+        name: t('device.chartCurrentPhase', { phase: chartPhase.value }),
         nameTextStyle: { color: '#94a3b8' },
         axisLabel: { color: '#94a3b8' },
         splitLine: { lineStyle: { color: '#f1f5f9' } },
@@ -1570,9 +1569,7 @@
           itemStyle: { color: '#f97316' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => [p.time, chartPhase.value === 'total'
-            ? +((p.load_current_a || 0) + (p.load_current_b || 0) + (p.load_current_c || 0)).toFixed(1)
-            : p[`load_current_${chartPhase.value.toLowerCase()}`]]),
+          data: points.map((p: any) => [p.time, p[`load_current_${chartPhase.value.toLowerCase()}`]]),
         },
         {
           name: t('device.chartChargingPower'),
@@ -1583,9 +1580,7 @@
           itemStyle: { color: '#22c55e' },
           symbol: 'none',
           smooth: true,
-          data: points.map((p: any) => [p.time, chartPhase.value === 'total'
-            ? +((p.total_charging_current_a || 0) + (p.total_charging_current_b || 0) + (p.total_charging_current_c || 0)).toFixed(1)
-            : p[`total_charging_current_${chartPhase.value.toLowerCase()}`]]),
+          data: points.map((p: any) => [p.time, p[`total_charging_current_${chartPhase.value.toLowerCase()}`]]),
         },
         {
           name: t('device.chartBreaker'),
