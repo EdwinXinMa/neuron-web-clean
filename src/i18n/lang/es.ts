@@ -180,6 +180,8 @@ export default {
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Configurar límite de corriente', dlmCurrent: 'Actual: {n}A', dlmConfirmBtn: 'Establecer {n}A',
     safetyMarginLabel: 'Margen de seguridad', safetyMarginRange: 'Rango 0~{max}A',
+    dlmCardTip: 'Límite de corriente: corriente nominal del disyuntor. Margen de seguridad: ajuste descendente sobre el límite. Corriente efectiva = Límite − Margen.',
+    marginMax: 'Margen máx.',
     switchWorkMode: 'Cambiar modo', batchWorkModeTitle: 'Modo masivo',
     batchWorkModeDesc: 'Cambiar todos los cargadores en línea a:', currentMode: 'Actual', modeUnknown: 'Desconocido',
     dlmChartTitle: 'Historial DLM',

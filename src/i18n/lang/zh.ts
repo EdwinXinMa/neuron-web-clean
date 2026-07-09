@@ -179,6 +179,8 @@ export default {
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: '修改最大电流阈值', dlmCurrent: '当前：{n}A', dlmConfirmBtn: '确认修改为 {n}A',
     safetyMarginLabel: '安全余量', safetyMarginRange: '范围 0~{max}A',
+    dlmCardTip: '电流阈值：入户断路器额定电流。安全余量：在阈值基础上向下调整的电流值，实际可用电流 = 阈值 − 余量。',
+    marginMax: '最大余量',
     switchWorkMode: '切换工作模式', batchWorkModeTitle: '批量设置工作模式',
     batchWorkModeDesc: '将以下在线充电桩统一切换为：', currentMode: '当前', modeUnknown: '暂未获取',
     dlmChartTitle: '动态负载管理（DLM）历史',

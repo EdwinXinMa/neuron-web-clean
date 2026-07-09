@@ -180,6 +180,8 @@ export default {
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Configurar limite de corrente', dlmCurrent: 'Atual: {n}A', dlmConfirmBtn: 'Definir {n}A',
     safetyMarginLabel: 'Margem de segurança', safetyMarginRange: 'Faixa 0~{max}A',
+    dlmCardTip: 'Limite de corrente: corrente nominal do disjuntor. Margem de segurança: ajuste descendente sobre o limite. Corrente efetiva = Limite − Margem.',
+    marginMax: 'Margem máx.',
     switchWorkMode: 'Mudar modo', batchWorkModeTitle: 'Modo em lote',
     batchWorkModeDesc: 'Mudar todos os carregadores online para:', currentMode: 'Atual', modeUnknown: 'Desconhecido',
     dlmChartTitle: 'Histórico DLM',

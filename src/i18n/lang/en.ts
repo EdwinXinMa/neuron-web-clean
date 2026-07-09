@@ -179,6 +179,8 @@ export default {
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Set Max Current Limit', dlmCurrent: 'Current: {n}A', dlmConfirmBtn: 'Set to {n}A',
     safetyMarginLabel: 'Safety Margin', safetyMarginRange: 'Range 0~{max}A',
+    dlmCardTip: 'Current Threshold: Breaker rated current. Safety Margin: Downward adjustment from the threshold. Effective current = Threshold − Margin.',
+    marginMax: 'Max margin',
     switchWorkMode: 'Switch Work Mode', batchWorkModeTitle: 'Batch Set Work Mode',
     batchWorkModeDesc: 'Switch all online chargers to:', currentMode: 'Current', modeUnknown: 'Unknown',
     dlmChartTitle: 'DLM History',

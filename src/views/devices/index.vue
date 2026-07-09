@@ -287,9 +287,14 @@
             </template>
 
             <div class="info-row" style="margin-top:4px;">
-              <span class="info-label">{{ t('device.currentThreshold') }}</span>
+              <span class="info-label">
+                {{ t('device.currentThreshold') }}/{{ t('device.safetyMarginLabel') }}
+                <a-tooltip :title="t('device.dlmCardTip')">
+                  <QuestionCircleOutlined style="color:#94a3b8;margin-left:4px;cursor:help;" />
+                </a-tooltip>
+              </span>
               <span class="info-value">
-                {{ selectedDevice.ctMax }}A / {{ t('device.safetyMarginLabel') }} {{ selectedDevice.safetyMargin || 0 }}A
+                {{ selectedDevice.ctMax }}A / {{ selectedDevice.safetyMargin || 0 }}A
                 <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" :title="t('device.noEditWhileCharging')"><a-button type="link" size="small" class="action-btn" disabled>{{ t('device.modify') }}</a-button></a-tooltip>
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
               </span>
@@ -466,11 +471,32 @@
           </span>
         </div>
       </div>
-      <div class="dlm-margin-wrapper" style="margin-top:16px;">
-        <div class="dlm-margin-label">{{ t('device.safetyMarginLabel') }}</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <a-input-number v-model:value="selectedSafetyMargin" :min="0" :max="maxSafetyMarginMap[selectedDlm] ?? 0" style="width:120px;" :addon-after="'A'" />
-          <span style="color:#94a3b8;font-size:12px;">{{ t('device.safetyMarginRange', { max: maxSafetyMarginMap[selectedDlm] ?? 0 }) }}</span>
+      <div class="margin-section">
+        <div class="margin-header">
+          <span class="margin-label">{{ t('device.safetyMarginLabel') }}
+            <a-tooltip placement="right">
+              <template #title>
+                <div style="font-size:12px;line-height:1.8;">
+                  <div v-for="r in dlmOptions" :key="r" :style="{ fontWeight: selectedDlm === r ? 700 : 400 }">
+                    {{ r }}A → {{ t('device.marginMax') }} {{ maxSafetyMarginMap[r] }}A
+                  </div>
+                </div>
+              </template>
+              <QuestionCircleOutlined style="color:#94a3b8;margin-left:4px;cursor:help;font-size:12px;" />
+            </a-tooltip>
+          </span>
+          <span class="margin-value" :style="{ color: marginSliderColor }">{{ selectedSafetyMargin }}<small>A</small></span>
+        </div>
+        <div class="margin-slider-wrapper">
+          <div class="margin-slider-track" ref="marginTrackRef" @click="onMarginTrackClick">
+            <div class="margin-slider-fill" :style="{ width: marginFillPercent + '%', background: marginSliderColor }"></div>
+            <div class="margin-slider-thumb" :style="{ left: marginFillPercent + '%', background: marginSliderColor }"
+              @mousedown="onMarginThumbDown"></div>
+          </div>
+          <div class="margin-marks">
+            <span class="margin-mark" style="left:0%">0A</span>
+            <span class="margin-mark" :style="{ left: '100%' }">{{ maxSafetyMarginMap[selectedDlm] ?? 0 }}A</span>
+          </div>
         </div>
       </div>
       <a-button type="primary" block size="large" class="dlm-confirm-btn" @click="confirmDlm"
@@ -570,7 +596,7 @@
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
-  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons-vue';
+  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined, EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue';
 
   const { t } = useI18n();
 
@@ -1210,6 +1236,45 @@
     window.addEventListener('mouseup', onUp);
   }
 
+  // ── 安全余量滑块 ──
+  const marginTrackRef = ref<HTMLElement>();
+  const curMaxMargin = computed(() => maxSafetyMarginMap[selectedDlm.value] ?? 0);
+
+  const marginFillPercent = computed(() => {
+    if (curMaxMargin.value === 0) { return 0; }
+    return (selectedSafetyMargin.value / curMaxMargin.value) * 100;
+  });
+
+  const marginSliderColor = computed(() => {
+    const ratio = marginFillPercent.value / 100;
+    if (ratio < 0.4) return '#43b89c';
+    if (ratio < 0.7) return '#f59e0b';
+    return '#ef4444';
+  });
+
+  function onMarginTrackClick(e: MouseEvent) {
+    if (!marginTrackRef.value || curMaxMargin.value === 0) { return; }
+    const rect = marginTrackRef.value.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    selectedSafetyMargin.value = Math.round((pct / 100) * curMaxMargin.value);
+  }
+
+  function onMarginThumbDown(e: MouseEvent) {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      if (!marginTrackRef.value || curMaxMargin.value === 0) { return; }
+      const rect = marginTrackRef.value.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      selectedSafetyMargin.value = Math.round((pct / 100) * curMaxMargin.value);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   function openDlmModal() {
     if (deviceDetail.value?.ctData) {
       selectedDlm.value = deviceDetail.value.ctData.breakerRating || 32;
@@ -1218,10 +1283,9 @@
     showDlmModal.value = true;
   }
 
-  watch(selectedDlm, (newVal) => {
-    const max = maxSafetyMarginMap[newVal] ?? 0;
-    if (selectedSafetyMargin.value > max) {
-      selectedSafetyMargin.value = max;
+  watch(selectedDlm, () => {
+    if (selectedSafetyMargin.value > curMaxMargin.value) {
+      selectedSafetyMargin.value = curMaxMargin.value;
     }
   });
 
@@ -2756,6 +2820,93 @@
   .dlm-mark.active {
     font-weight: 700;
     font-size: 13px;
+  }
+
+  .margin-section {
+    margin-bottom: 24px;
+    padding: 0 8px;
+  }
+
+  .margin-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .margin-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  .margin-value {
+    font-size: 22px;
+    font-weight: 700;
+    transition: color 0.3s;
+  }
+
+  .margin-value small {
+    font-size: 13px;
+    font-weight: 500;
+    color: #94a3b8;
+    margin-left: 2px;
+  }
+
+  .margin-slider-wrapper {
+    padding: 0;
+  }
+
+  .margin-slider-track {
+    position: relative;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+
+  .margin-slider-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.1s;
+  }
+
+  .margin-slider-thumb {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+    cursor: grab;
+    transition: left 0.1s, background 0.3s;
+  }
+
+  .margin-slider-thumb:active {
+    cursor: grabbing;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+
+  .margin-marks {
+    position: relative;
+    height: 22px;
+    margin-top: 6px;
+  }
+
+  .margin-mark {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: #94a3b8;
+  }
+
+  .margin-mark:last-child {
+    transform: translateX(-50%);
   }
 
   .dlm-confirm-btn {

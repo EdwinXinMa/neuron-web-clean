@@ -178,6 +178,8 @@ export default {
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: '修改最大電流閾值', dlmCurrent: '當前：{n}A', dlmConfirmBtn: '確認修改為 {n}A',
     safetyMarginLabel: '安全餘量', safetyMarginRange: '範圍 0~{max}A',
+    dlmCardTip: '電流閾值：入戶斷路器額定電流。安全餘量：在閾值基礎上向下調整的電流值，實際可用電流 = 閾值 − 餘量。',
+    marginMax: '最大餘量',
     switchWorkMode: '切換工作模式', batchWorkModeTitle: '批量設置工作模式',
     batchWorkModeDesc: '將以下在線充電樁統一切換為：', currentMode: '當前', modeUnknown: '暫未獲取',
     dlmChartTitle: '動態負載管理（DLM）歷史',
