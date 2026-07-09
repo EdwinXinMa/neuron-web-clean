@@ -178,6 +178,7 @@ export default {
     statusCharging: 'Charging', statusFinished: 'Finished', sessionTotal: '{n} records',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Set Max Current Limit', dlmCurrent: 'Current: {n}A', dlmConfirmBtn: 'Set to {n}A',
+    safetyMarginLabel: 'Safety Margin', safetyMarginRange: 'Range 0~{max}A',
     switchWorkMode: 'Switch Work Mode', batchWorkModeTitle: 'Batch Set Work Mode',
     batchWorkModeDesc: 'Switch all online chargers to:', currentMode: 'Current', modeUnknown: 'Unknown',
     dlmChartTitle: 'DLM History',

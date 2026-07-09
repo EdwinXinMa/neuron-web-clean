@@ -177,6 +177,7 @@ export default {
     statusCharging: '充電中', statusFinished: '已完成', sessionTotal: '共 {n} 條',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: '修改最大電流閾值', dlmCurrent: '當前：{n}A', dlmConfirmBtn: '確認修改為 {n}A',
+    safetyMarginLabel: '安全餘量', safetyMarginRange: '範圍 0~{max}A',
     switchWorkMode: '切換工作模式', batchWorkModeTitle: '批量設置工作模式',
     batchWorkModeDesc: '將以下在線充電樁統一切換為：', currentMode: '當前', modeUnknown: '暫未獲取',
     dlmChartTitle: '動態負載管理（DLM）歷史',

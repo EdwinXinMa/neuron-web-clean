@@ -179,6 +179,7 @@ export default {
     statusCharging: 'Carregando', statusFinished: 'Concluído', sessionTotal: '{n} registros',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Configurar limite de corrente', dlmCurrent: 'Atual: {n}A', dlmConfirmBtn: 'Definir {n}A',
+    safetyMarginLabel: 'Margem de segurança', safetyMarginRange: 'Faixa 0~{max}A',
     switchWorkMode: 'Mudar modo', batchWorkModeTitle: 'Modo em lote',
     batchWorkModeDesc: 'Mudar todos os carregadores online para:', currentMode: 'Atual', modeUnknown: 'Desconhecido',
     dlmChartTitle: 'Histórico DLM',

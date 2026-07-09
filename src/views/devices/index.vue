@@ -289,7 +289,7 @@
             <div class="info-row" style="margin-top:4px;">
               <span class="info-label">{{ t('device.currentThreshold') }}</span>
               <span class="info-value">
-                {{ selectedDevice.ctMax }} A
+                {{ selectedDevice.ctMax }}A / {{ t('device.safetyMarginLabel') }} {{ selectedDevice.safetyMargin || 0 }}A
                 <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" :title="t('device.noEditWhileCharging')"><a-button type="link" size="small" class="action-btn" disabled>{{ t('device.modify') }}</a-button></a-tooltip>
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
               </span>
@@ -466,8 +466,15 @@
           </span>
         </div>
       </div>
+      <div class="dlm-margin-wrapper" style="margin-top:16px;">
+        <div class="dlm-margin-label">{{ t('device.safetyMarginLabel') }}</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <a-input-number v-model:value="selectedSafetyMargin" :min="0" :max="maxSafetyMarginMap[selectedDlm] ?? 0" style="width:120px;" :addon-after="'A'" />
+          <span style="color:#94a3b8;font-size:12px;">{{ t('device.safetyMarginRange', { max: maxSafetyMarginMap[selectedDlm] ?? 0 }) }}</span>
+        </div>
+      </div>
       <a-button type="primary" block size="large" class="dlm-confirm-btn" @click="confirmDlm"
-        :disabled="selectedDlm === selectedDevice?.ctMax">
+        :disabled="selectedDlm === selectedDevice?.ctMax && selectedSafetyMargin === (selectedDevice?.safetyMargin ?? 0)">
         {{ t('device.dlmConfirmBtn', { n: selectedDlm }) }}
       </a-button>
     </a-modal>
@@ -593,6 +600,7 @@
           if (dlm.totalChargingCurrentC != null) { ct.totalChargingCurrentC = dlm.totalChargingCurrentC; }
           if (dlm.wifiRssi != null) { ct.wifiRssi = dlm.wifiRssi; }
           if (dlm.breakerRating != null) { ct.breakerRating = dlm.breakerRating; }
+          if (dlm.safetyMargin != null) { ct.safetyMargin = dlm.safetyMargin; }
           if (dlm.macAddress != null && deviceDetail.value.device) {
             deviceDetail.value.device.macAddress = dlm.macAddress;
           }
@@ -671,7 +679,9 @@
   const showDlmModal = ref(false);
   const selectedFw = ref<string>('');
   const selectedDlm = ref<number>(32);
-  const dlmOptions = [20, 25, 32, 40, 50, 63];
+  const selectedSafetyMargin = ref<number>(0);
+  const dlmOptions = [32, 40, 50, 63, 80, 100];
+  const maxSafetyMarginMap: Record<number, number> = { 32: 31, 40: 7, 50: 9, 63: 12, 80: 16, 100: 19 };
   const firmwareList = ref<any[]>([]);
 
   // OTA 升级流程状态
@@ -879,6 +889,7 @@
       ctCurrentB: ct.totalCurrentB ?? 0,
       ctCurrentC: ct.totalCurrentC ?? 0,
       ctMax: ct.breakerRating ?? d.breakerRating ?? 32,
+      safetyMargin: ct.safetyMargin ?? 0,
       voltage: ct.voltage ?? 0,
       totalPower: ct.totalPower ?? 0,
       loadCurrentA: ct.loadCurrentA ?? 0,
@@ -1202,9 +1213,17 @@
   function openDlmModal() {
     if (deviceDetail.value?.ctData) {
       selectedDlm.value = deviceDetail.value.ctData.breakerRating || 32;
+      selectedSafetyMargin.value = deviceDetail.value.ctData.safetyMargin ?? 0;
     }
     showDlmModal.value = true;
   }
+
+  watch(selectedDlm, (newVal) => {
+    const max = maxSafetyMarginMap[newVal] ?? 0;
+    if (selectedSafetyMargin.value > max) {
+      selectedSafetyMargin.value = max;
+    }
+  });
 
   async function confirmOta() {
     if (!selectedFw.value || !selectedDevice.value) return;
@@ -1370,11 +1389,12 @@
     try {
       await http.post(`/device/${selectedDevice.value.sn}/dlm`, {
         breakerRating: selectedDlm.value,
+        safetyMargin: selectedSafetyMargin.value,
       });
       selectedDevice.value.ctMax = selectedDlm.value;
+      selectedDevice.value.safetyMargin = selectedSafetyMargin.value;
       showDlmModal.value = false;
       message.success(t('device.dlmSuccess', { n: selectedDlm.value }));
-      // 刷新详情
       setTimeout(() => loadDetail(selectedDevice.value!.sn), 500);
     } catch (e: any) {
       message.error(t('device.dlmFailed'));
