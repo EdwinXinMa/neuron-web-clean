@@ -288,13 +288,14 @@
 
             <div class="info-row" style="margin-top:4px;">
               <span class="info-label">
-                {{ t('device.currentThreshold') }}/{{ t('device.safetyMarginLabel') }}
-                <a-tooltip :title="t('device.dlmCardTip')">
+                {{ supportsSafetyMargin ? `${t('device.currentThreshold')}/${t('device.safetyMarginLabel')}` : t('device.currentThreshold') }}
+                <a-tooltip v-if="supportsSafetyMargin" :title="t('device.dlmCardTip')">
                   <QuestionCircleOutlined style="color:#94a3b8;margin-left:4px;cursor:help;" />
                 </a-tooltip>
               </span>
               <span class="info-value">
-                {{ selectedDevice.ctMax }}A / {{ selectedDevice.safetyMargin || 0 }}A
+                <template v-if="supportsSafetyMargin">{{ selectedDevice.ctMax }}A / {{ selectedDevice.safetyMargin || 0 }}A</template>
+                <template v-else>{{ selectedDevice.ctMax }}A</template>
                 <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" :title="t('device.noEditWhileCharging')"><a-button type="link" size="small" class="action-btn" disabled>{{ t('device.modify') }}</a-button></a-tooltip>
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
               </span>
@@ -471,7 +472,7 @@
           </span>
         </div>
       </div>
-      <div class="margin-section">
+      <div v-if="supportsSafetyMargin" class="margin-section">
         <div class="margin-header">
           <span class="margin-label">{{ t('device.safetyMarginLabel') }}
             <a-tooltip placement="right">
@@ -500,7 +501,7 @@
         </div>
       </div>
       <a-button type="primary" block size="large" class="dlm-confirm-btn" @click="confirmDlm"
-        :disabled="selectedDlm === selectedDevice?.ctMax && selectedSafetyMargin === (selectedDevice?.safetyMargin ?? 0)">
+        :disabled="selectedDlm === selectedDevice?.ctMax && (!supportsSafetyMargin || selectedSafetyMargin === (selectedDevice?.safetyMargin ?? 0))">
         {{ t('device.dlmConfirmBtn', { n: selectedDlm }) }}
       </a-button>
     </a-modal>
@@ -706,9 +707,37 @@
   const selectedFw = ref<string>('');
   const selectedDlm = ref<number>(32);
   const selectedSafetyMargin = ref<number>(0);
-  const dlmOptions = [32, 40, 50, 63, 80, 100];
+  const DLM_SAFETY_MARGIN_MIN_VERSION = '2.0.33';
+  const oldDlmOptions = [20, 25, 32, 40, 50, 63];
+  const newDlmOptions = [32, 40, 50, 63, 80, 100];
   const maxSafetyMarginMap: Record<number, number> = { 32: 31, 40: 7, 50: 9, 63: 12, 80: 16, 100: 19 };
   const firmwareList = ref<any[]>([]);
+
+  function normalizeVersion(version?: string | null) {
+    if (!version || version === '-') return null;
+    const match = version.trim().match(/(\d+(?:\.\d+){0,3})/);
+    return match ? match[1].split('.').map(n => Number(n)) : null;
+  }
+
+  function compareVersion(a?: string | null, b?: string | null) {
+    const av = normalizeVersion(a);
+    const bv = normalizeVersion(b);
+    if (!av || !bv) return null;
+    const len = Math.max(av.length, bv.length);
+    for (let i = 0; i < len; i++) {
+      const ai = av[i] ?? 0;
+      const bi = bv[i] ?? 0;
+      if (ai !== bi) return ai > bi ? 1 : -1;
+    }
+    return 0;
+  }
+
+  const supportsSafetyMargin = computed(() => {
+    const cmp = compareVersion(selectedDevice.value?.fw, DLM_SAFETY_MARGIN_MIN_VERSION);
+    return cmp != null && cmp >= 0;
+  });
+
+  const dlmOptions = computed(() => supportsSafetyMargin.value ? newDlmOptions : oldDlmOptions);
 
   // OTA 升级流程状态
   const otaPhase = ref<'idle' | 'select' | 'running'>('idle');
@@ -1180,8 +1209,8 @@
 
   // ── DLM 滑块 ──
   const dlmTrackRef = ref<HTMLElement>();
-  const dlmMin = computed(() => Math.min(...dlmOptions));
-  const dlmMax = computed(() => Math.max(...dlmOptions));
+  const dlmMin = computed(() => Math.min(...dlmOptions.value));
+  const dlmMax = computed(() => Math.max(...dlmOptions.value));
 
   const dlmFillPercent = computed(() => {
     return ((selectedDlm.value - dlmMin.value) / (dlmMax.value - dlmMin.value)) * 100;
@@ -1204,9 +1233,9 @@
 
   function snapToNearest(percent: number) {
     const val = dlmMin.value + (percent / 100) * (dlmMax.value - dlmMin.value);
-    let closest = dlmOptions[0];
+    let closest = dlmOptions.value[0];
     let minDist = Infinity;
-    for (const amp of dlmOptions) {
+    for (const amp of dlmOptions.value) {
       const dist = Math.abs(amp - val);
       if (dist < minDist) { minDist = dist; closest = amp; }
     }
@@ -1277,8 +1306,9 @@
 
   function openDlmModal() {
     if (deviceDetail.value?.ctData) {
-      selectedDlm.value = deviceDetail.value.ctData.breakerRating || 32;
-      selectedSafetyMargin.value = deviceDetail.value.ctData.safetyMargin ?? 0;
+      const currentRating = deviceDetail.value.ctData.breakerRating || 32;
+      selectedDlm.value = dlmOptions.value.includes(currentRating) ? currentRating : dlmOptions.value[0];
+      selectedSafetyMargin.value = supportsSafetyMargin.value ? (deviceDetail.value.ctData.safetyMargin ?? 0) : 0;
     }
     showDlmModal.value = true;
   }
@@ -1450,13 +1480,16 @@
 
   async function confirmDlm() {
     if (!selectedDevice.value) return;
+    const payload: Record<string, number> = { breakerRating: selectedDlm.value };
+    if (supportsSafetyMargin.value) {
+      payload.safetyMargin = selectedSafetyMargin.value;
+    }
     try {
-      await http.post(`/device/${selectedDevice.value.sn}/dlm`, {
-        breakerRating: selectedDlm.value,
-        safetyMargin: selectedSafetyMargin.value,
-      });
+      await http.post(`/device/${selectedDevice.value.sn}/dlm`, payload);
       selectedDevice.value.ctMax = selectedDlm.value;
-      selectedDevice.value.safetyMargin = selectedSafetyMargin.value;
+      if (supportsSafetyMargin.value) {
+        selectedDevice.value.safetyMargin = selectedSafetyMargin.value;
+      }
       showDlmModal.value = false;
       message.success(t('device.dlmSuccess', { n: selectedDlm.value }));
       setTimeout(() => loadDetail(selectedDevice.value!.sn), 500);
