@@ -707,7 +707,7 @@
   const selectedFw = ref<string>('');
   const selectedDlm = ref<number>(32);
   const selectedSafetyMargin = ref<number>(0);
-  const DLM_SAFETY_MARGIN_MIN_VERSION = '2.0.33';
+  const DLM_SAFETY_MARGIN_MIN_VERSION = '2.0.35';
   const oldDlmOptions = [20, 25, 32, 40, 50, 63];
   const newDlmOptions = [32, 40, 50, 63, 80, 100];
   const maxSafetyMarginMap: Record<number, number> = { 32: 31, 40: 7, 50: 9, 63: 12, 80: 16, 100: 19 };
