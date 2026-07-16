@@ -1252,7 +1252,7 @@
   }
 
   function presetMaxMargin(option: DlmPreset) {
-    return option === 'min' ? 31 - selectedMinDlm.value : (maxSafetyMarginMap[option] ?? 0);
+    return option === 'min' ? 0 : (maxSafetyMarginMap[option] ?? 0);
   }
 
   function isDlmPresetActive(option: DlmPreset) {
@@ -1274,6 +1274,7 @@
     if (option === 'min') {
       selectedDlmIsMin.value = true;
       selectedDlm.value = selectedMinDlm.value;
+      selectedSafetyMargin.value = 0;
     } else {
       selectedDlmIsMin.value = false;
       selectedDlm.value = option;
@@ -1328,7 +1329,7 @@
     selectedMinDlm.value = Math.max(0, Math.min(31, Math.round(value)));
     if (selectedDlmIsMin.value) {
       selectedDlm.value = selectedMinDlm.value;
-      clampSafetyMargin();
+      selectedSafetyMargin.value = 0;
     }
   }
 
@@ -1359,7 +1360,7 @@
   const marginTrackRef = ref<HTMLElement>();
   const curMaxMargin = computed(() => {
     if (!supportsSafetyMargin.value) { return 0; }
-    return selectedDlmIsMin.value ? Math.max(0, 31 - selectedMinDlm.value) : (maxSafetyMarginMap[selectedDlm.value] ?? 0);
+    return selectedDlmIsMin.value ? 0 : (maxSafetyMarginMap[selectedDlm.value] ?? 0);
   });
 
   const marginFillPercent = computed(() => {
