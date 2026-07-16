@@ -178,6 +178,7 @@ export default {
     statusCharging: '充电中', statusFinished: '已完成', sessionTotal: '共 {n} 条',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: '修改最大电流阈值', dlmCurrent: '当前：{n}A', dlmConfirmBtn: '确认修改为 {n}A',
+    dlmMinLabel: 'Min 档位',
     safetyMarginLabel: '安全余量', safetyMarginRange: '范围 0~{max}A',
     dlmCardTip: '电流阈值：入户断路器额定电流。安全余量：在阈值基础上向下调整的电流值，实际可用电流 = 阈值 − 余量。',
     marginMax: '最大余量',

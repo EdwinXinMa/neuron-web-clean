@@ -178,6 +178,7 @@ export default {
     statusCharging: 'Charging', statusFinished: 'Finished', sessionTotal: '{n} records',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Set Max Current Limit', dlmCurrent: 'Current: {n}A', dlmConfirmBtn: 'Set to {n}A',
+    dlmMinLabel: 'Min Level',
     safetyMarginLabel: 'Safety Margin', safetyMarginRange: 'Range 0~{max}A',
     dlmCardTip: 'Current Threshold: Breaker rated current. Safety Margin: Downward adjustment from the threshold. Effective current = Threshold − Margin.',
     marginMax: 'Max margin',

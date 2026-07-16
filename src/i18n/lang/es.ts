@@ -179,6 +179,7 @@ export default {
     statusCharging: 'Cargando', statusFinished: 'Finalizado', sessionTotal: '{n} registros',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Configurar límite de corriente', dlmCurrent: 'Actual: {n}A', dlmConfirmBtn: 'Establecer {n}A',
+    dlmMinLabel: 'Nivel Min',
     safetyMarginLabel: 'Margen de seguridad', safetyMarginRange: 'Rango 0~{max}A',
     dlmCardTip: 'Límite de corriente: corriente nominal del disyuntor. Margen de seguridad: ajuste descendente sobre el límite. Corriente efectiva = Límite − Margen.',
     marginMax: 'Margen máx.',

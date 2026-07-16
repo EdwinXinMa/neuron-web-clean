@@ -452,6 +452,7 @@
       <div class="dlm-header">
         <div class="dlm-title">{{ t('device.dlmModalTitle') }}</div>
         <div class="dlm-value-display">
+          <span v-if="selectedDlmIsMin" class="dlm-value-mode">Min</span>
           <span class="dlm-value-num" :style="{ color: dlmSliderColor }">{{ selectedDlm }}</span>
           <span class="dlm-value-unit">A</span>
         </div>
@@ -464,12 +465,29 @@
             @mousedown="onThumbDown"></div>
         </div>
         <div class="dlm-marks">
-          <span v-for="amp in dlmOptions" :key="amp"
-            :class="['dlm-mark', { active: selectedDlm === amp }]"
-            :style="{ left: dlmMarkPercent(amp) + '%', color: selectedDlm === amp ? dlmSliderColor : '#94a3b8' }"
-            @click="selectedDlm = amp">
-            {{ amp }}A
+          <span v-for="option in dlmOptions" :key="String(option)"
+            :class="['dlm-mark', { active: isDlmPresetActive(option) }]"
+            :style="{ left: dlmMarkPercent(option) + '%', color: isDlmPresetActive(option) ? dlmSliderColor : '#94a3b8' }"
+            @click="selectDlmPreset(option)">
+            {{ dlmPresetLabel(option) }}
           </span>
+        </div>
+      </div>
+      <div v-if="supportsSafetyMargin && selectedDlmIsMin" class="min-section">
+        <div class="margin-header">
+          <span class="margin-label">{{ t('device.dlmMinLabel') }}</span>
+          <span class="margin-value" :style="{ color: dlmSliderColor }">{{ selectedMinDlm }}<small>A</small></span>
+        </div>
+        <div class="min-slider-wrapper">
+          <div class="margin-slider-track" ref="minTrackRef" @click="onMinTrackClick">
+            <div class="margin-slider-fill" :style="{ width: minFillPercent + '%', background: dlmSliderColor }"></div>
+            <div class="margin-slider-thumb" :style="{ left: minFillPercent + '%', background: dlmSliderColor }"
+              @mousedown="onMinThumbDown"></div>
+          </div>
+          <div class="margin-marks">
+            <span class="margin-mark" style="left:0%">0A</span>
+            <span class="margin-mark" :style="{ left: '100%' }">31A</span>
+          </div>
         </div>
       </div>
       <div v-if="supportsSafetyMargin" class="margin-section">
@@ -478,8 +496,8 @@
             <a-tooltip placement="right">
               <template #title>
                 <div style="font-size:12px;line-height:1.8;">
-                  <div v-for="r in dlmOptions" :key="r" :style="{ fontWeight: selectedDlm === r ? 700 : 400 }">
-                    {{ r }}A → {{ t('device.marginMax') }} {{ maxSafetyMarginMap[r] }}A
+                  <div v-for="option in dlmOptions" :key="String(option)" :style="{ fontWeight: isDlmPresetActive(option) ? 700 : 400 }">
+                    {{ dlmPresetLabel(option) }} → {{ t('device.marginMax') }} {{ presetMaxMargin(option) }}A
                   </div>
                 </div>
               </template>
@@ -489,14 +507,14 @@
           <span class="margin-value" :style="{ color: marginSliderColor }">{{ selectedSafetyMargin }}<small>A</small></span>
         </div>
         <div class="margin-slider-wrapper">
-          <div class="margin-slider-track" ref="marginTrackRef" @click="onMarginTrackClick">
+          <div :class="['margin-slider-track', { disabled: curMaxMargin === 0 }]" ref="marginTrackRef" @click="onMarginTrackClick">
             <div class="margin-slider-fill" :style="{ width: marginFillPercent + '%', background: marginSliderColor }"></div>
             <div class="margin-slider-thumb" :style="{ left: marginFillPercent + '%', background: marginSliderColor }"
               @mousedown="onMarginThumbDown"></div>
           </div>
           <div class="margin-marks">
             <span class="margin-mark" style="left:0%">0A</span>
-            <span class="margin-mark" :style="{ left: '100%' }">{{ maxSafetyMarginMap[selectedDlm] ?? 0 }}A</span>
+            <span class="margin-mark" :style="{ left: '100%' }">{{ curMaxMargin }}A</span>
           </div>
         </div>
       </div>
@@ -706,10 +724,13 @@
   const showDlmModal = ref(false);
   const selectedFw = ref<string>('');
   const selectedDlm = ref<number>(32);
+  const selectedDlmIsMin = ref(false);
+  const selectedMinDlm = ref(25);
   const selectedSafetyMargin = ref<number>(0);
   const DLM_SAFETY_MARGIN_MIN_VERSION = '2.0.35';
-  const oldDlmOptions = [20, 25, 32, 40, 50, 63];
-  const newDlmOptions = [32, 40, 50, 63, 80, 100];
+  type DlmPreset = number | 'min';
+  const oldDlmOptions: DlmPreset[] = [20, 25, 32, 40, 50, 63];
+  const newDlmOptions: DlmPreset[] = ['min', 32, 50, 63, 80, 100];
   const maxSafetyMarginMap: Record<number, number> = { 32: 31, 40: 7, 50: 9, 63: 12, 80: 16, 100: 19 };
   const firmwareList = ref<any[]>([]);
 
@@ -737,7 +758,7 @@
     return cmp != null && cmp >= 0;
   });
 
-  const dlmOptions = computed(() => supportsSafetyMargin.value ? newDlmOptions : oldDlmOptions);
+  const dlmOptions = computed<DlmPreset[]>(() => supportsSafetyMargin.value ? newDlmOptions : oldDlmOptions);
 
   // OTA 升级流程状态
   const otaPhase = ref<'idle' | 'select' | 'running'>('idle');
@@ -1209,15 +1230,55 @@
 
   // ── DLM 滑块 ──
   const dlmTrackRef = ref<HTMLElement>();
-  const dlmMin = computed(() => Math.min(...dlmOptions.value));
-  const dlmMax = computed(() => Math.max(...dlmOptions.value));
 
   const dlmFillPercent = computed(() => {
-    return ((selectedDlm.value - dlmMin.value) / (dlmMax.value - dlmMin.value)) * 100;
+    if (dlmOptions.value.length <= 1) { return 0; }
+    return (selectedDlmPresetIndex.value / (dlmOptions.value.length - 1)) * 100;
   });
 
-  function dlmMarkPercent(amp: number) {
-    return ((amp - dlmMin.value) / (dlmMax.value - dlmMin.value)) * 100;
+  const selectedDlmPresetIndex = computed(() => {
+    const idx = dlmOptions.value.findIndex(option => isDlmPresetActive(option));
+    return idx >= 0 ? idx : 0;
+  });
+
+  function dlmMarkPercent(option: DlmPreset) {
+    const idx = dlmOptions.value.findIndex(item => item === option);
+    if (dlmOptions.value.length <= 1 || idx < 0) { return 0; }
+    return (idx / (dlmOptions.value.length - 1)) * 100;
+  }
+
+  function dlmPresetLabel(option: DlmPreset) {
+    return option === 'min' ? 'Min' : `${option}A`;
+  }
+
+  function presetMaxMargin(option: DlmPreset) {
+    return option === 'min' ? 31 - selectedMinDlm.value : (maxSafetyMarginMap[option] ?? 0);
+  }
+
+  function isDlmPresetActive(option: DlmPreset) {
+    return option === 'min'
+      ? selectedDlmIsMin.value
+      : !selectedDlmIsMin.value && selectedDlm.value === option;
+  }
+
+  function clampSafetyMargin() {
+    if (selectedSafetyMargin.value > curMaxMargin.value) {
+      selectedSafetyMargin.value = curMaxMargin.value;
+    }
+    if (selectedSafetyMargin.value < 0) {
+      selectedSafetyMargin.value = 0;
+    }
+  }
+
+  function selectDlmPreset(option: DlmPreset) {
+    if (option === 'min') {
+      selectedDlmIsMin.value = true;
+      selectedDlm.value = selectedMinDlm.value;
+    } else {
+      selectedDlmIsMin.value = false;
+      selectedDlm.value = option;
+    }
+    clampSafetyMargin();
   }
 
   const dlmSliderColor = computed(() => {
@@ -1232,14 +1293,8 @@
   });
 
   function snapToNearest(percent: number) {
-    const val = dlmMin.value + (percent / 100) * (dlmMax.value - dlmMin.value);
-    let closest = dlmOptions.value[0];
-    let minDist = Infinity;
-    for (const amp of dlmOptions.value) {
-      const dist = Math.abs(amp - val);
-      if (dist < minDist) { minDist = dist; closest = amp; }
-    }
-    selectedDlm.value = closest;
+    const idx = Math.round((percent / 100) * (dlmOptions.value.length - 1));
+    selectDlmPreset(dlmOptions.value[Math.max(0, Math.min(dlmOptions.value.length - 1, idx))]);
   }
 
   function onTrackClick(e: MouseEvent) {
@@ -1265,9 +1320,47 @@
     window.addEventListener('mouseup', onUp);
   }
 
+  // ── Min 档滑块 ──
+  const minTrackRef = ref<HTMLElement>();
+  const minFillPercent = computed(() => (selectedMinDlm.value / 31) * 100);
+
+  function setMinDlm(value: number) {
+    selectedMinDlm.value = Math.max(0, Math.min(31, Math.round(value)));
+    if (selectedDlmIsMin.value) {
+      selectedDlm.value = selectedMinDlm.value;
+      clampSafetyMargin();
+    }
+  }
+
+  function onMinTrackClick(e: MouseEvent) {
+    if (!minTrackRef.value) { return; }
+    const rect = minTrackRef.value.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+    setMinDlm((pct / 100) * 31);
+  }
+
+  function onMinThumbDown(e: MouseEvent) {
+    e.preventDefault();
+    const onMove = (ev: MouseEvent) => {
+      if (!minTrackRef.value) { return; }
+      const rect = minTrackRef.value.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
+      setMinDlm((pct / 100) * 31);
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
   // ── 安全余量滑块 ──
   const marginTrackRef = ref<HTMLElement>();
-  const curMaxMargin = computed(() => maxSafetyMarginMap[selectedDlm.value] ?? 0);
+  const curMaxMargin = computed(() => {
+    if (!supportsSafetyMargin.value) { return 0; }
+    return selectedDlmIsMin.value ? Math.max(0, 31 - selectedMinDlm.value) : (maxSafetyMarginMap[selectedDlm.value] ?? 0);
+  });
 
   const marginFillPercent = computed(() => {
     if (curMaxMargin.value === 0) { return 0; }
@@ -1306,12 +1399,26 @@
 
   function openDlmModal() {
     if (deviceDetail.value?.ctData) {
-      const currentRating = deviceDetail.value.ctData.breakerRating || 32;
-      selectedDlm.value = dlmOptions.value.includes(currentRating) ? currentRating : dlmOptions.value[0];
+      const currentRating = deviceDetail.value.ctData.breakerRating ?? 32;
+      if (supportsSafetyMargin.value && currentRating >= 0 && currentRating <= 31) {
+        selectedDlmIsMin.value = true;
+        setMinDlm(currentRating);
+      } else {
+        const fixedOption = dlmOptions.value.includes(currentRating) ? currentRating : dlmOptions.value[0];
+        selectDlmPreset(fixedOption);
+      }
       selectedSafetyMargin.value = supportsSafetyMargin.value ? (deviceDetail.value.ctData.safetyMargin ?? 0) : 0;
+      clampSafetyMargin();
     }
     showDlmModal.value = true;
   }
+
+  watch([selectedMinDlm, curMaxMargin], () => {
+    if (selectedDlmIsMin.value) {
+      selectedDlm.value = selectedMinDlm.value;
+    }
+    clampSafetyMargin();
+  });
 
   watch(selectedDlm, () => {
     if (selectedSafetyMargin.value > curMaxMargin.value) {
@@ -1480,6 +1587,7 @@
 
   async function confirmDlm() {
     if (!selectedDevice.value) return;
+    clampSafetyMargin();
     const payload: Record<string, number> = { breakerRating: selectedDlm.value };
     if (supportsSafetyMargin.value) {
       payload.safetyMargin = selectedSafetyMargin.value;
@@ -2776,6 +2884,16 @@
     gap: 4px;
   }
 
+  .dlm-value-mode {
+    align-self: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #43b89c;
+    border: 1px solid rgba(67, 184, 156, 0.35);
+    border-radius: 6px;
+    padding: 2px 6px;
+  }
+
   .dlm-value-num {
     font-size: 56px;
     font-weight: 700;
@@ -2860,6 +2978,11 @@
     padding: 0 8px;
   }
 
+  .min-section {
+    margin-bottom: 24px;
+    padding: 0 8px;
+  }
+
   .margin-header {
     display: flex;
     align-items: baseline;
@@ -2890,12 +3013,21 @@
     padding: 0;
   }
 
+  .min-slider-wrapper {
+    padding: 0;
+  }
+
   .margin-slider-track {
     position: relative;
     height: 6px;
     background: #e2e8f0;
     border-radius: 3px;
     cursor: pointer;
+  }
+
+  .margin-slider-track.disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
   }
 
   .margin-slider-fill {

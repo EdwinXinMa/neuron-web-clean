@@ -179,6 +179,7 @@ export default {
     statusCharging: 'Carregando', statusFinished: 'Concluído', sessionTotal: '{n} registros',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: 'Configurar limite de corrente', dlmCurrent: 'Atual: {n}A', dlmConfirmBtn: 'Definir {n}A',
+    dlmMinLabel: 'Nível Min',
     safetyMarginLabel: 'Margem de segurança', safetyMarginRange: 'Faixa 0~{max}A',
     dlmCardTip: 'Limite de corrente: corrente nominal do disjuntor. Margem de segurança: ajuste descendente sobre o limite. Corrente efetiva = Limite − Margem.',
     marginMax: 'Margem máx.',

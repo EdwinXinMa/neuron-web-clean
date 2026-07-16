@@ -177,6 +177,7 @@ export default {
     statusCharging: '充電中', statusFinished: '已完成', sessionTotal: '共 {n} 條',
     chargeMethodN3: 'N3Lite', chargeMethodI: 'iCharger',
     dlmModalTitle: '修改最大電流閾值', dlmCurrent: '當前：{n}A', dlmConfirmBtn: '確認修改為 {n}A',
+    dlmMinLabel: 'Min 檔位',
     safetyMarginLabel: '安全餘量', safetyMarginRange: '範圍 0~{max}A',
     dlmCardTip: '電流閾值：入戶斷路器額定電流。安全餘量：在閾值基礎上向下調整的電流值，實際可用電流 = 閾值 − 餘量。',
     marginMax: '最大餘量',
