@@ -485,8 +485,8 @@
               @mousedown="onMinThumbDown"></div>
           </div>
           <div class="margin-marks">
-            <span class="margin-mark" style="left:0%">0A</span>
-            <span class="margin-mark" :style="{ left: '100%' }">31A</span>
+            <span class="margin-mark" style="left:0%">{{ DLM_MIN_CURRENT_MIN }}A</span>
+            <span class="margin-mark" :style="{ left: '100%' }">{{ DLM_MIN_CURRENT_MAX }}A</span>
           </div>
         </div>
       </div>
@@ -731,7 +731,9 @@
   type DlmPreset = number | 'min';
   const oldDlmOptions: DlmPreset[] = [20, 25, 32, 40, 50, 63];
   const newDlmOptions: DlmPreset[] = ['min', 32, 50, 63, 80, 100];
-  const maxSafetyMarginMap: Record<number, number> = { 32: 31, 40: 7, 50: 9, 63: 12, 80: 16, 100: 19 };
+  const DLM_MIN_CURRENT_MIN = 6;
+  const DLM_MIN_CURRENT_MAX = 25;
+  const maxSafetyMarginMap: Record<number, number> = { 32: 6, 40: 7, 50: 9, 63: 12, 80: 16, 100: 19 };
   const firmwareList = ref<any[]>([]);
 
   function normalizeVersion(version?: string | null) {
@@ -1323,10 +1325,12 @@
 
   // ── Min 档滑块 ──
   const minTrackRef = ref<HTMLElement>();
-  const minFillPercent = computed(() => (selectedMinDlm.value / 31) * 100);
+  const minFillPercent = computed(() => (
+    ((selectedMinDlm.value - DLM_MIN_CURRENT_MIN) / (DLM_MIN_CURRENT_MAX - DLM_MIN_CURRENT_MIN)) * 100
+  ));
 
   function setMinDlm(value: number) {
-    selectedMinDlm.value = Math.max(0, Math.min(31, Math.round(value)));
+    selectedMinDlm.value = Math.max(DLM_MIN_CURRENT_MIN, Math.min(DLM_MIN_CURRENT_MAX, Math.round(value)));
     if (selectedDlmIsMin.value) {
       selectedDlm.value = selectedMinDlm.value;
       selectedSafetyMargin.value = 0;
@@ -1337,7 +1341,7 @@
     if (!minTrackRef.value) { return; }
     const rect = minTrackRef.value.getBoundingClientRect();
     const pct = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
-    setMinDlm((pct / 100) * 31);
+    setMinDlm(DLM_MIN_CURRENT_MIN + (pct / 100) * (DLM_MIN_CURRENT_MAX - DLM_MIN_CURRENT_MIN));
   }
 
   function onMinThumbDown(e: MouseEvent) {
@@ -1346,7 +1350,7 @@
       if (!minTrackRef.value) { return; }
       const rect = minTrackRef.value.getBoundingClientRect();
       const pct = Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100));
-      setMinDlm((pct / 100) * 31);
+      setMinDlm(DLM_MIN_CURRENT_MIN + (pct / 100) * (DLM_MIN_CURRENT_MAX - DLM_MIN_CURRENT_MIN));
     };
     const onUp = () => {
       window.removeEventListener('mousemove', onMove);
@@ -1401,7 +1405,7 @@
   function openDlmModal() {
     if (deviceDetail.value?.ctData) {
       const currentRating = deviceDetail.value.ctData.breakerRating ?? 32;
-      if (supportsSafetyMargin.value && currentRating >= 0 && currentRating <= 31) {
+      if (supportsSafetyMargin.value && currentRating >= DLM_MIN_CURRENT_MIN && currentRating <= DLM_MIN_CURRENT_MAX) {
         selectedDlmIsMin.value = true;
         setMinDlm(currentRating);
       } else {
