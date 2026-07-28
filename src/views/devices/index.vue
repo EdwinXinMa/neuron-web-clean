@@ -211,10 +211,10 @@
               <div class="current-bar-wrapper">
                 <div class="current-bar-header">
                   <span class="current-bar-label">{{ t('device.currentLoad') }}</span>
-                  <span class="current-bar-value">{{ selectedDevice.ctCurrentA.toFixed(1) }} / {{ selectedDevice.ctMax }} A</span>
+                  <span class="current-bar-value">{{ selectedDevice.ctCurrentA.toFixed(1) }} / {{ selectedDevice.effectiveMax }} A</span>
                 </div>
                 <div class="current-bar-bg">
-                  <div class="current-bar-fill" :style="{ width: Math.min(selectedDevice.ctCurrentA / selectedDevice.ctMax * 100, 100) + '%', background: barColor(selectedDevice.ctCurrentA, selectedDevice.ctMax) }"></div>
+                  <div class="current-bar-fill" :style="{ width: Math.min(selectedDevice.ctCurrentA / selectedDevice.effectiveMax * 100, 100) + '%', background: barColor(selectedDevice.ctCurrentA, selectedDevice.effectiveMax) }"></div>
                 </div>
               </div>
               <template v-if="showCurrentDetail">
@@ -232,8 +232,8 @@
                   <div class="current-bar-wrapper current-bar-detail">
                     <div class="current-bar-bg">
                       <div class="current-bar-split">
-                        <div :style="{ width: Math.min(selectedDevice.loadCurrentA / selectedDevice.ctMax * 100, 100) + '%', background: '#06b6d4', borderRadius: '4px' }"></div>
-                        <div :style="{ width: Math.min(Math.max(selectedDevice.ctCurrentA - selectedDevice.loadCurrentA, 0) / selectedDevice.ctMax * 100, 100) + '%', background: '#22c55e', borderRadius: '4px' }"></div>
+                        <div :style="{ width: Math.min(selectedDevice.loadCurrentA / selectedDevice.effectiveMax * 100, 100) + '%', background: '#06b6d4', borderRadius: '4px' }"></div>
+                        <div :style="{ width: Math.min(Math.max(selectedDevice.ctCurrentA - selectedDevice.loadCurrentA, 0) / selectedDevice.effectiveMax * 100, 100) + '%', background: '#22c55e', borderRadius: '4px' }"></div>
                       </div>
                     </div>
                   </div>
@@ -251,10 +251,10 @@
                 <div class="current-bar-wrapper">
                   <div class="current-bar-header">
                     <span class="current-bar-label current-bar-phase">{{ phase }}</span>
-                    <span class="current-bar-value">{{ selectedDevice['ctCurrent' + phase].toFixed(1) }} / {{ selectedDevice.ctMax }} A</span>
+                    <span class="current-bar-value">{{ selectedDevice['ctCurrent' + phase].toFixed(1) }} / {{ selectedDevice.effectiveMax }} A</span>
                   </div>
                   <div class="current-bar-bg">
-                    <div class="current-bar-fill" :style="{ width: Math.min(selectedDevice['ctCurrent' + phase] / selectedDevice.ctMax * 100, 100) + '%', background: barColor(selectedDevice['ctCurrent' + phase], selectedDevice.ctMax) }"></div>
+                    <div class="current-bar-fill" :style="{ width: Math.min(selectedDevice['ctCurrent' + phase] / selectedDevice.effectiveMax * 100, 100) + '%', background: barColor(selectedDevice['ctCurrent' + phase], selectedDevice.effectiveMax) }"></div>
                   </div>
                 </div>
                 <template v-if="showCurrentDetail">
@@ -272,8 +272,8 @@
                     <div class="current-bar-wrapper current-bar-detail">
                       <div class="current-bar-bg">
                         <div class="current-bar-split">
-                          <div :style="{ width: Math.min(selectedDevice['loadCurrent' + phase] / selectedDevice.ctMax * 100, 100) + '%', background: '#06b6d4', borderRadius: '4px' }"></div>
-                          <div :style="{ width: Math.min(Math.max(selectedDevice['ctCurrent' + phase] - selectedDevice['loadCurrent' + phase], 0) / selectedDevice.ctMax * 100, 100) + '%', background: '#22c55e', borderRadius: '4px' }"></div>
+                          <div :style="{ width: Math.min(selectedDevice['loadCurrent' + phase] / selectedDevice.effectiveMax * 100, 100) + '%', background: '#06b6d4', borderRadius: '4px' }"></div>
+                          <div :style="{ width: Math.min(Math.max(selectedDevice['ctCurrent' + phase] - selectedDevice['loadCurrent' + phase], 0) / selectedDevice.effectiveMax * 100, 100) + '%', background: '#22c55e', borderRadius: '4px' }"></div>
                         </div>
                       </div>
                     </div>
@@ -294,7 +294,7 @@
                 </a-tooltip>
               </span>
               <span class="info-value">
-                <template v-if="supportsSafetyMargin">{{ selectedDevice.ctMax }}A / {{ selectedDevice.safetyMargin || 0 }}A</template>
+                <template v-if="supportsSafetyMargin">{{ selectedDevice.ctMax }}A / {{ selectedDevice.safetyMargin || 0 }}A → {{ selectedDevice.effectiveMax }}A</template>
                 <template v-else>{{ selectedDevice.ctMax }}A</template>
                 <a-tooltip v-if="selectedDevice.status === 'online' && isAnyCharging" :title="t('device.noEditWhileCharging')"><a-button type="link" size="small" class="action-btn" disabled>{{ t('device.modify') }}</a-button></a-tooltip>
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
@@ -968,6 +968,7 @@
       ctCurrentC: ct.totalCurrentC ?? 0,
       ctMax: ct.breakerRating ?? d.breakerRating ?? 32,
       safetyMargin: ct.safetyMargin ?? 0,
+      effectiveMax: (ct.breakerRating ?? d.breakerRating ?? 32) - (ct.safetyMargin ?? 0),
       voltage: ct.voltage ?? 0,
       totalPower: ct.totalPower ?? 0,
       loadCurrentA: ct.loadCurrentA ?? 0,
