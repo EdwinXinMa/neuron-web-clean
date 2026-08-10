@@ -121,7 +121,7 @@
               <span class="info-label">{{ t('device.onlineStatus') }}</span>
               <span class="info-value">
                 <a-badge :status="badgeStatus(selectedDevice.status)" :text="statusLabel(selectedDevice.status)" :class="`badge-${selectedDevice.status}`" />
-                <a-tooltip v-if="(selectedDevice.status === 'online' || selectedDevice.status === 'fault') && !resetting" :title="t('device.reboot')">
+                <a-tooltip v-if="(selectedDevice.status === 'online' || selectedDevice.status === 'fault') && !resetting && !factoryResetting" :title="t('device.reboot')">
                   <a-popconfirm
                     :title="t('device.confirmReboot')"
                     :ok-text="t('common.confirm')"
@@ -131,8 +131,22 @@
                     <ReloadOutlined class="reset-icon" />
                   </a-popconfirm>
                 </a-tooltip>
+                <a-tooltip v-if="(selectedDevice.status === 'online' || selectedDevice.status === 'fault') && !resetting && !factoryResetting" :title="t('device.factoryReset')">
+                  <a-popconfirm
+                    :title="t('device.confirmFactoryReset')"
+                    :ok-text="t('common.confirm')"
+                    :cancel-text="t('common.cancel')"
+                    ok-type="danger"
+                    @confirm="factoryResetDevice"
+                  >
+                    <WarningOutlined class="factory-reset-icon" />
+                  </a-popconfirm>
+                </a-tooltip>
                 <a-tooltip v-if="resetting" :title="t('device.rebooting')">
                   <LoadingOutlined class="reset-icon resetting" />
+                </a-tooltip>
+                <a-tooltip v-if="factoryResetting" :title="t('device.factoryResetting')">
+                  <LoadingOutlined class="factory-reset-icon resetting" />
                 </a-tooltip>
               </span>
             </div>
@@ -615,7 +629,7 @@
   import { getDeviceList, getDeviceDetail } from '@/api/device';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
-  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined, EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue';
+  import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined, EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined, WarningOutlined } from '@ant-design/icons-vue';
 
   const { t } = useI18n();
 
@@ -1217,6 +1231,7 @@
   }
 
   const resetting = ref(false);
+  const factoryResetting = ref(false);
 
   async function resetDevice() {
     if (!selectedDevice.value) return;
@@ -1228,6 +1243,20 @@
     } catch (e: any) {
       resetting.value = false;
       message.error(e?.response?.data?.message || t('device.rebootFailed'));
+    }
+  }
+
+  async function factoryResetDevice() {
+    if (!selectedDevice.value) return;
+    const sn = selectedDevice.value.sn;
+    try {
+      factoryResetting.value = true;
+      await http.post(`/device/${sn}/factory-reset`, null, { params: { confirm: true } });
+      message.success(t('device.factoryResetSent'));
+    } catch (e: any) {
+      message.error(e?.response?.data?.message || t('device.factoryResetFailed'));
+    } finally {
+      factoryResetting.value = false;
     }
   }
 
@@ -2401,6 +2430,24 @@
   }
 
   .reset-icon.resetting {
+    color: #faad14;
+    cursor: default;
+  }
+
+  .factory-reset-icon {
+    color: #ef4444;
+    font-size: 14px;
+    margin-left: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .factory-reset-icon:hover {
+    color: #dc2626;
+    transform: scale(1.08);
+  }
+
+  .factory-reset-icon.resetting {
     color: #faad14;
     cursor: default;
   }
