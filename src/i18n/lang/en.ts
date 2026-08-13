@@ -133,7 +133,7 @@ export default {
     uploadBtn: '+ Upload Firmware',
     colVersion: 'Version', colDeviceType: 'Device Type', colFileName: 'File Name',
     colFileSize: 'File Size', colReleaseNotes: 'Release Notes',
-    colStatus: 'Status', colCreateTime: 'Created At', colAction: 'Action',
+    colStatus: 'Status', colCreateTime: 'Created At', colCreateBy: 'Creator', colAction: 'Action',
     statusDraft: 'Draft', statusReleased: 'Released', statusDeprecated: 'Deprecated',
     actionRelease: 'Release', actionDeprecate: 'Deprecate', actionDownload: 'Download',
     confirmRelease: 'Publish this firmware?', confirmDelete: 'Delete this firmware?',

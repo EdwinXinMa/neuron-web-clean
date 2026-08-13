@@ -135,7 +135,7 @@ export default {
     uploadBtn: '+ Cargar Firmware',
     colVersion: 'Versión', colDeviceType: 'Tipo', colFileName: 'Nombre de archivo',
     colFileSize: 'Tamaño', colReleaseNotes: 'Notas',
-    colStatus: 'Estado', colCreateTime: 'Creado', colAction: 'Acción',
+    colStatus: 'Estado', colCreateTime: 'Creado', colCreateBy: 'Creador', colAction: 'Acción',
     statusDraft: 'Borrador', statusReleased: 'Publicado', statusDeprecated: 'Obsoleto',
     actionRelease: 'Publicar', actionDeprecate: 'Deprecar', actionDownload: 'Descargar',
     confirmRelease: '¿Publicar este firmware?', confirmDelete: '¿Eliminar este firmware?',

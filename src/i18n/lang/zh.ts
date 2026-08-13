@@ -133,7 +133,7 @@ export default {
     uploadBtn: '+ 上传固件',
     colVersion: '版本号', colDeviceType: '设备类型', colFileName: '文件名',
     colFileSize: '文件大小', colReleaseNotes: '版本说明',
-    colStatus: '状态', colCreateTime: '创建时间', colAction: '操作',
+    colStatus: '状态', colCreateTime: '创建时间', colCreateBy: '创建者', colAction: '操作',
     statusDraft: '草稿', statusReleased: '已发布', statusDeprecated: '已废弃',
     actionRelease: '发布', actionDeprecate: '废弃', actionDownload: '下载',
     confirmRelease: '确认发布该固件？', confirmDelete: '确认删除该固件？',

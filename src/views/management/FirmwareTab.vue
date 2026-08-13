@@ -53,7 +53,7 @@
         :pagination="pagination"
         row-key="id"
         size="middle"
-        :scroll="{ x: 1000 }"
+        :scroll="{ x: 1240 }"
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
@@ -67,6 +67,9 @@
           </template>
           <template v-else-if="column.dataIndex === 'createTime'">
             {{ record.createTime ? record.createTime.slice(0, 19).replace('T', ' ') : '-' }}
+          </template>
+          <template v-else-if="column.dataIndex === 'createBy'">
+            {{ record.createBy || '-' }}
           </template>
           <template v-else-if="column.dataIndex === 'action'">
             <template v-if="record.status === 'DRAFT'">
@@ -161,6 +164,7 @@ const columns = computed(() => [
   { title: t('firmware.colFileSize'), dataIndex: 'fileSize', width: 100 },
   { title: t('firmware.colReleaseNotes'), dataIndex: 'releaseNotes', width: 200, ellipsis: true },
   { title: t('firmware.colStatus'), dataIndex: 'status', width: 100 },
+  { title: t('firmware.colCreateBy'), dataIndex: 'createBy', width: 120 },
   { title: t('firmware.colCreateTime'), dataIndex: 'createTime', width: 170 },
   { title: t('firmware.colAction'), dataIndex: 'action', width: 140, fixed: 'right' as const },
 ])
