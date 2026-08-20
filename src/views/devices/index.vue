@@ -551,9 +551,9 @@
     >
       <div style="margin-bottom:16px; font-size:13px; color:#64748b;">{{ workModePileSn }}</div>
       <a-radio-group v-model:value="workModeNewValue" button-style="solid" size="small">
-        <a-radio-button value="Plc">PLC</a-radio-button>
-        <a-radio-button value="App">APP</a-radio-button>
-        <a-radio-button value="Ocpp">OCPP</a-radio-button>
+        <a-radio-button value="Manual">手动模式</a-radio-button>
+        <a-radio-button value="Auto">即插即充</a-radio-button>
+        <a-radio-button value="Scheduled">预约充电</a-radio-button>
       </a-radio-group>
     </a-modal>
 
@@ -568,9 +568,9 @@
     >
       <div style="margin-bottom:12px; color:#64748b; font-size:13px;">{{ t('device.batchWorkModeDesc') }}</div>
       <a-select v-model:value="batchWorkModeValue" style="width:100%; margin-bottom:16px;">
-        <a-select-option value="Plc">PLC</a-select-option>
-        <a-select-option value="App">APP</a-select-option>
-        <a-select-option value="Ocpp">OCPP</a-select-option>
+        <a-select-option value="Manual">手动模式</a-select-option>
+        <a-select-option value="Auto">即插即充</a-select-option>
+        <a-select-option value="Scheduled">预约充电</a-select-option>
       </a-select>
       <div v-for="p in onlinePiles" :key="p.sn" style="padding:4px 0; font-size:13px; color:#cbd5e1;">
         {{ p.sn }} <span style="color:#64748b; margin-left:8px;">{{ t('device.currentMode') }}: {{ workModeLabels[p.workMode] || t('device.modeUnknown') }}</span>
@@ -1642,7 +1642,7 @@
   }
 
   // ==================== 工作模式切换 ====================
-  const workModeLabels: Record<string, string> = { Plc: 'PLC', App: 'APP', Ocpp: 'OCPP' };
+  const workModeLabels: Record<string, string> = { Manual: '手动模式', Auto: '即插即充', Scheduled: '预约充电' };
   const onlinePiles = computed(() =>
     (selectedDevice.value?.chargers || []).filter((p: any) => p.hasDlmData && p.connectStatus !== 'offline')
   );
@@ -1651,12 +1651,12 @@
   const showWorkModeModal = ref(false);
   const workModePileSn = ref('');
   const workModeOldValue = ref('');
-  const workModeNewValue = ref('Plc');
+  const workModeNewValue = ref('Manual');
 
   function onWorkModeClick(pile: any) {
     workModePileSn.value = pile.sn;
     workModeOldValue.value = pile.workMode;
-    workModeNewValue.value = pile.workMode !== 'unknown' ? pile.workMode : 'Plc';
+    workModeNewValue.value = pile.workMode !== 'unknown' ? pile.workMode : 'Manual';
     showWorkModeModal.value = true;
   }
 
@@ -1679,9 +1679,9 @@
 
   // 批量设置工作模式
   const showBatchWorkMode = ref(false);
-  const batchWorkModeValue = ref('Plc');
+  const batchWorkModeValue = ref('Manual');
   function openBatchWorkMode() {
-    batchWorkModeValue.value = 'Plc';
+    batchWorkModeValue.value = 'Manual';
     showBatchWorkMode.value = true;
   }
   async function confirmBatchWorkMode() {
