@@ -551,9 +551,9 @@
     >
       <div style="margin-bottom:16px; font-size:13px; color:#64748b;">{{ workModePileSn }}</div>
       <a-radio-group v-model:value="workModeNewValue" button-style="solid" size="small">
-        <a-radio-button value="Manual">手动模式</a-radio-button>
-        <a-radio-button value="Auto">即插即充</a-radio-button>
-        <a-radio-button value="Scheduled">预约充电</a-radio-button>
+        <a-radio-button value="Manual">{{ t('device.workModeManual') }}</a-radio-button>
+        <a-radio-button value="Auto">{{ t('device.workModeAuto') }}</a-radio-button>
+        <a-radio-button value="Scheduled">{{ t('device.workModeScheduled') }}</a-radio-button>
       </a-radio-group>
     </a-modal>
 
@@ -568,9 +568,9 @@
     >
       <div style="margin-bottom:12px; color:#64748b; font-size:13px;">{{ t('device.batchWorkModeDesc') }}</div>
       <a-select v-model:value="batchWorkModeValue" style="width:100%; margin-bottom:16px;">
-        <a-select-option value="Manual">手动模式</a-select-option>
-        <a-select-option value="Auto">即插即充</a-select-option>
-        <a-select-option value="Scheduled">预约充电</a-select-option>
+        <a-select-option value="Manual">{{ t('device.workModeManual') }}</a-select-option>
+        <a-select-option value="Auto">{{ t('device.workModeAuto') }}</a-select-option>
+        <a-select-option value="Scheduled">{{ t('device.workModeScheduled') }}</a-select-option>
       </a-select>
       <div v-for="p in onlinePiles" :key="p.sn" style="padding:4px 0; font-size:13px; color:#cbd5e1;">
         {{ p.sn }} <span style="color:#64748b; margin-left:8px;">{{ t('device.currentMode') }}: {{ workModeLabels[p.workMode] || t('device.modeUnknown') }}</span>
@@ -1642,7 +1642,11 @@
   }
 
   // ==================== 工作模式切换 ====================
-  const workModeLabels: Record<string, string> = { Manual: '手动模式', Auto: '即插即充', Scheduled: '预约充电' };
+  const workModeLabels = computed<Record<string, string>>(() => ({
+    Manual: t('device.workModeManual'),
+    Auto: t('device.workModeAuto'),
+    Scheduled: t('device.workModeScheduled'),
+  }));
   const onlinePiles = computed(() =>
     (selectedDevice.value?.chargers || []).filter((p: any) => p.hasDlmData && p.connectStatus !== 'offline')
   );
@@ -1670,7 +1674,7 @@
         deviceList: [{ sn: workModePileSn.value, workMode: workModeNewValue.value }],
       });
       showWorkModeModal.value = false;
-      message.success(t('device.workModeSwitched', { mode: workModeLabels[workModeNewValue.value] }));
+      message.success(t('device.workModeSwitched', { mode: workModeLabels.value[workModeNewValue.value] }));
       setTimeout(() => loadDetail(selectedSn.value!), 500);
     } catch (e: any) {
       message.error(t('device.workModeFailed'));
@@ -1692,7 +1696,7 @@
         deviceList: piles.map((p: any) => ({ sn: p.sn, workMode: batchWorkModeValue.value })),
       });
       showBatchWorkMode.value = false;
-      message.success(t('device.batchWorkModeSwitched', { mode: workModeLabels[batchWorkModeValue.value] }));
+      message.success(t('device.batchWorkModeSwitched', { mode: workModeLabels.value[batchWorkModeValue.value] }));
       setTimeout(() => loadDetail(selectedSn.value!), 500);
     } catch (e: any) {
       message.error(t('device.batchWorkModeFailed'));

@@ -185,6 +185,7 @@ export default {
     marginMax: '最大餘量',
     switchWorkMode: '切換工作模式', batchWorkModeTitle: '批量設置工作模式',
     batchWorkModeDesc: '將以下在線充電樁統一切換為：', currentMode: '當前', modeUnknown: '暫未獲取',
+    workModeManual: '手動模式', workModeAuto: '即插即充', workModeScheduled: '預約充電',
     dlmChartTitle: '動態負載管理（DLM）歷史',
     phaseTotal: '總', phaseA: 'A相', phaseB: 'B相', phaseC: 'C相',
     range1h: '1小時', range6h: '6小時', range24h: '24小時', range7d: '7天',

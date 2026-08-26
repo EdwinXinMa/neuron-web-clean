@@ -187,6 +187,7 @@ export default {
     marginMax: 'Margem máx.',
     switchWorkMode: 'Mudar modo', batchWorkModeTitle: 'Modo em lote',
     batchWorkModeDesc: 'Mudar todos os carregadores online para:', currentMode: 'Atual', modeUnknown: 'Desconhecido',
+    workModeManual: 'Modo manual', workModeAuto: 'Conectar e carregar', workModeScheduled: 'Carregamento agendado',
     dlmChartTitle: 'Histórico DLM',
     phaseTotal: 'Total', phaseA: 'Fase A', phaseB: 'Fase B', phaseC: 'Fase C',
     range1h: '1 hora', range6h: '6 horas', range24h: '24 horas', range7d: '7 dias',

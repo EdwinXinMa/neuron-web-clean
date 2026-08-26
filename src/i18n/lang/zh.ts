@@ -186,6 +186,7 @@ export default {
     marginMax: '最大余量',
     switchWorkMode: '切换工作模式', batchWorkModeTitle: '批量设置工作模式',
     batchWorkModeDesc: '将以下在线充电桩统一切换为：', currentMode: '当前', modeUnknown: '暂未获取',
+    workModeManual: '手动模式', workModeAuto: '即插即充', workModeScheduled: '预约充电',
     dlmChartTitle: '动态负载管理（DLM）历史',
     phaseTotal: '总', phaseA: 'A相', phaseB: 'B相', phaseC: 'C相',
     range1h: '1小时', range6h: '6小时', range24h: '24小时', range7d: '7天',

@@ -337,6 +337,17 @@ function stopAlertScroll() {
 // ─── 地图 ───
 const mapRef = ref<HTMLElement>();
 let map: L.Map | null = null;
+let mapResizeObserver: ResizeObserver | null = null;
+let mapResizeFrame: number | null = null;
+
+function invalidateMapSize() {
+  if (!map || !mapRef.value) return;
+  if (mapResizeFrame !== null) cancelAnimationFrame(mapResizeFrame);
+  mapResizeFrame = requestAnimationFrame(() => {
+    mapResizeFrame = null;
+    map?.invalidateSize({ animate: false, pan: false });
+  });
+}
 
 const statusColor: Record<string, string> = {
   online: '#1a8c6e',
@@ -367,6 +378,8 @@ function initMap() {
     subdomains: 'abcd',
     maxZoom: 19,
   }).addTo(map);
+
+  map.whenReady(invalidateMapSize);
 
   // 添加 zoom 控件到右下
   L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -469,10 +482,23 @@ async function loadDashboard() {
 onMounted(async () => {
   await nextTick();
   initMap();
+  if (mapRef.value) {
+    mapResizeObserver = new ResizeObserver(invalidateMapSize);
+    mapResizeObserver.observe(mapRef.value);
+  }
+  window.addEventListener('resize', invalidateMapSize);
+  invalidateMapSize();
   loadDashboard();
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener('resize', invalidateMapSize);
+  mapResizeObserver?.disconnect();
+  mapResizeObserver = null;
+  if (mapResizeFrame !== null) {
+    cancelAnimationFrame(mapResizeFrame);
+    mapResizeFrame = null;
+  }
   if (map) {
     map.remove();
     map = null;

@@ -186,6 +186,7 @@ export default {
     marginMax: 'Max margin',
     switchWorkMode: 'Switch Work Mode', batchWorkModeTitle: 'Batch Set Work Mode',
     batchWorkModeDesc: 'Switch all online chargers to:', currentMode: 'Current', modeUnknown: 'Unknown',
+    workModeManual: 'Manual Mode', workModeAuto: 'Plug and Charge', workModeScheduled: 'Scheduled Charging',
     dlmChartTitle: 'DLM History',
     phaseTotal: 'Total', phaseA: 'Phase A', phaseB: 'Phase B', phaseC: 'Phase C',
     range1h: '1 Hour', range6h: '6 Hours', range24h: '24 Hours', range7d: '7 Days',
