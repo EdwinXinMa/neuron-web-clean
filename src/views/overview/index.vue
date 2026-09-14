@@ -23,6 +23,8 @@
     <div class="main-area">
       <div class="map-panel">
         <div ref="mapRef" class="map-container"></div>
+        <div class="map-heading">{{ t('overview.deviceDistribution') }}</div>
+        <button class="map-reset" type="button" @click="resetMapView">{{ t('overview.worldView') }}</button>
         <div class="map-legend">
           <span class="legend-item"><span class="legend-dot legend-online"></span>{{ t('common.online') }}</span>
           <span class="legend-item"><span class="legend-dot legend-offline"></span>{{ t('common.offline') }}</span>
@@ -104,17 +106,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, reactive, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import worldMapUrl from '../../assets/maps/world.webp';
 import { getDeviceStats, getDeviceMapData } from '@/api/device';
 import { ClusterOutlined, CheckCircleOutlined, StopOutlined, WarningOutlined, LockOutlined } from '@ant-design/icons-vue';
 import http from '@/api/http';
 import { useDeviceEvents } from '@/composables/useDeviceEvents';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const router = useRouter();
 
 // 监听设备事件，自动刷新仪表盘
@@ -339,13 +342,62 @@ const mapRef = ref<HTMLElement>();
 let map: L.Map | null = null;
 let mapResizeObserver: ResizeObserver | null = null;
 let mapResizeFrame: number | null = null;
+let showingWorld = true;
+let fittingWorld = false;
+let lastMapWidth = 0;
+let lastMapHeight = 0;
+let focusedDevices = false;
+let placeLabels: L.Tooltip[] = [];
+
+// A few large-country labels orient the overview; smaller ones appear on zoom.
+const labelLocations: [string, number, number, number][] = [
+  ['CA', 57, -108, 0], ['US', 39, -100, 0], ['MX', 23, -102, 1.5],
+  ['BR', -10, -53, 0], ['AR', -36, -64, 1.5], ['CL', -28, -72, 2.5],
+  ['RU', 61, 100, 0], ['CN', 35, 105, 0], ['IN', 23, 79, 0],
+  ['AU', -25, 134, 0], ['ZA', -29, 25, 1.5], ['DZ', 28, 3, 1.5],
+  ['EG', 26, 30, 2], ['NG', 9, 8, 2], ['SA', 24, 45, 1.5],
+  ['ID', -3, 118, 1.5], ['GB', 55, -3, 2.5], ['FR', 46, 2, 2.5],
+  ['DE', 51, 10, 2.5], ['JP', 37, 138, 2], ['NZ', -42, 173, 2],
+];
+
+function renderMapLabels() {
+  placeLabels.forEach(label => label.remove());
+  placeLabels = [];
+  if (!map) return;
+  const names = new Intl.DisplayNames([locale.value === 'tw' ? 'zh-Hant' : locale.value], { type: 'region' });
+  labelLocations.filter(([, , , minZoom]) => map!.getZoom() >= minZoom).forEach(([code, lat, lng]) => {
+    placeLabels.push(L.tooltip({ permanent: true, direction: 'center', interactive: false,
+      className: 'map-country-name', pane: 'mapLabels', opacity: 1,
+    }).setLatLng([lat, lng]).setContent(names.of(code) || code).addTo(map!));
+  });
+}
+watch(locale, renderMapLabels);
+
+function resetMapView() {
+  // Fit the inhabited world, keeping the polar regions available by panning.
+  showingWorld = true;
+  fittingWorld = true;
+  try {
+    map?.fitBounds([[-55, -175], [75, 180]], { padding: [24, 44], animate: false });
+  } finally {
+    fittingWorld = false;
+  }
+}
 
 function invalidateMapSize() {
   if (!map || !mapRef.value) return;
   if (mapResizeFrame !== null) cancelAnimationFrame(mapResizeFrame);
   mapResizeFrame = requestAnimationFrame(() => {
     mapResizeFrame = null;
+    const width = mapRef.value?.clientWidth || 0;
+    const height = mapRef.value?.clientHeight || 0;
+    if (!width || !height || (width === lastMapWidth && height === lastMapHeight)) return;
+    lastMapWidth = width;
+    lastMapHeight = height;
     map?.invalidateSize({ animate: false, pan: false });
+    if (showingWorld) {
+      resetMapView();
+    }
   });
 }
 
@@ -365,18 +417,33 @@ const statusLabel = computed<Record<string, string>>(() => ({
 function initMap() {
   if (!mapRef.value) return;
   map = L.map(mapRef.value, {
-    center: [20, 120],
-    zoom: 2,
-    minZoom: 2,
+    crs: L.CRS.EPSG3857,
+    center: [20, 0],
+    zoom: 1,
+    minZoom: 0,
+    maxZoom: 4,
+    zoomSnap: 0.25,
+    zoomDelta: 1,
+    wheelDebounceTime: 80,
     maxBoundsViscosity: 1.0,
-    maxBounds: [[-90, -180], [90, 180]],
+    maxBounds: [[-85.0511287798066, -180], [85.0511287798066, 180]],
     zoomControl: false,
     attributionControl: false,
   });
 
-  L.tileLayer('https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    maxZoom: 19,
+  const labelPane = map.createPane('mapLabels');
+  labelPane.style.zIndex = '450';
+  labelPane.style.pointerEvents = 'none';
+  map.on('movestart zoomstart', () => { if (!fittingWorld) showingWorld = false; });
+  map.on('zoomend', renderMapLabels);
+  // Rasterized once at build time so zooming only transforms a decoded image,
+  // rather than repeatedly rasterizing the detailed vector paths.
+  // The square artwork and markers share the same Web Mercator projection.
+  L.imageOverlay(worldMapUrl, [[-85.0511287798066, -180], [85.0511287798066, 180]], {
+    interactive: false,
+    className: 'world-basemap',
   }).addTo(map);
+  renderMapLabels();
 
   map.whenReady(invalidateMapSize);
 
@@ -472,6 +539,16 @@ async function loadDashboard() {
         );
         marker.on('click', () => goDevice(d.sn));
       });
+      if (!focusedDevices && map) {
+        const points = mapDevices.value
+          .filter(d => Number.isFinite(d.lat) && Number.isFinite(d.lng))
+          .map(d => L.latLng(d.lat, d.lng));
+        if (points.length) {
+          focusedDevices = true;
+          showingWorld = false;
+          map.fitBounds(L.latLngBounds(points), { padding: [64, 80], maxZoom: 2.5, animate: false });
+        }
+      }
     }
   } catch(e) {
     console.error('Dashboard load failed:', e);
@@ -502,6 +579,7 @@ onBeforeUnmount(() => {
     map.remove();
     map = null;
   }
+  placeLabels = [];
 });
 </script>
 
@@ -611,8 +689,15 @@ onBeforeUnmount(() => {
 .map-container {
   width: 100%;
   height: 100%;
-  background: #e8ecf1;
+  background: #dcebf0;
 }
+
+.map-heading { position: absolute; top: 22px; left: 24px; z-index: 450; color: #526c7d; font-size: 13px; font-weight: 600; pointer-events: none; }
+.map-reset { position: absolute; top: 16px; right: 18px; z-index: 450; padding: 7px 12px; border: 1px solid #d8e4eb; border-radius: 6px; background: rgba(255,255,255,.9); color: #567080; font-size: 12px; cursor: pointer; box-shadow: 0 2px 6px #243e5010; }
+.map-reset:hover { color: #24785f; border-color: #9fc8bc; }
+.map-reset:focus-visible { outline: 2px solid #24785f; outline-offset: 2px; }
+:deep(.map-country-name) { background: transparent; border: 0; box-shadow: none; color: #6e7b7a; font-size: 12px; font-weight: 500; letter-spacing: .04em; text-shadow: 0 1px 2px #fff, 0 -1px 2px #fff; padding: 0; pointer-events: none; }
+:deep(.map-country-name::before) { display: none; }
 
 /* ─── 地图点样式 ─── */
 /* ─── 地图标点 ─── */
@@ -634,19 +719,19 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 10px;
-  height: 10px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 2px solid;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(0.3333);
   animation: ripple 2.5s ease-out infinite;
 }
 :deep(.map-dot-fault .dot-ripple) {
   animation-duration: 1.5s;
 }
 @keyframes ripple {
-  0% { width: 10px; height: 10px; opacity: 0.8; }
-  100% { width: 30px; height: 30px; opacity: 0; }
+  0% { transform: translate(-50%, -50%) scale(0.3333); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
 }
 
 /* ─── 地图图例 ─── */

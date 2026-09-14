@@ -62,6 +62,8 @@ export default {
   },
 
   overview: {
+    deviceDistribution: "Distribuição global de dispositivos",
+    worldView: "Visão mundial",
     totalDevices: 'Total de Dispositivos',
     todayStats: 'Estatísticas de hoje',
     activeDevices: '{n} Ativos',

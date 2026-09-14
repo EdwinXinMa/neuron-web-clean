@@ -60,6 +60,8 @@ export default {
   },
 
   overview: {
+    deviceDistribution: "Global device distribution",
+    worldView: "World view",
     totalDevices: 'Total Devices',
     todayStats: "Today's Stats",
     activeDevices: '{n} Active',
