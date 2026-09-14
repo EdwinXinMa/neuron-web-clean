@@ -60,6 +60,8 @@ export default {
   },
 
   overview: {
+    deviceDistribution: "全球設備分布",
+    worldView: "全球視圖",
     totalDevices: '設備總數',
     todayStats: '今日統計',
     activeDevices: '活躍 {n} 台',
