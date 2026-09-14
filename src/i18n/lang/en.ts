@@ -150,6 +150,15 @@ export default {
   },
 
   device: {
+    allocationMode: "Current allocation mode",
+    allocationAverage: "Equal sharing",
+    allocationFifo: "First come, first served",
+    allocationLoading: "Reading…",
+    allocationReadFailed: "Unable to read",
+    allocationRetry: "Retry",
+    allocationSaved: "Current allocation mode saved",
+    allocationSaveFailed: "Could not confirm the setting. Read the mode again.",
+
     searchSn: 'Search by serial number...',
     totalDevices: '{n} devices',
     noMatchingDevices: 'No matching devices',

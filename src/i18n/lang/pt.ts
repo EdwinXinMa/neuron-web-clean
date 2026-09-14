@@ -152,6 +152,15 @@ export default {
   },
 
   device: {
+    allocationMode: "Modo de distribuição de corrente",
+    allocationAverage: "Distribuição igual",
+    allocationFifo: "Por ordem de chegada",
+    allocationLoading: "Consultando…",
+    allocationReadFailed: "Falha na consulta",
+    allocationRetry: "Tentar novamente",
+    allocationSaved: "Modo de distribuição salvo",
+    allocationSaveFailed: "Não foi possível confirmar a alteração. Consulte o modo novamente.",
+
     searchSn: 'Buscar por número de série...',
     totalDevices: '{n} dispositivos',
     noMatchingDevices: 'Nenhum dispositivo',

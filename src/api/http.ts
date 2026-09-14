@@ -6,6 +6,13 @@ import { i18n, getStoredLang } from '../i18n'
 
 const t = (key: string) => i18n.global.t(key)
 
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    /** The caller owns inline error/retry UI and stale-request handling. */
+    silentError?: boolean
+  }
+}
+
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 15000,
@@ -33,7 +40,7 @@ http.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data } = response
     if (data.success === false) {
-      message.error(data.message || t('http.requestFail'))
+      if (!response.config.silentError) message.error(data.message || t('http.requestFail'))
       return Promise.reject(new Error(data.message || t('http.requestFail')))
     }
     return data
@@ -48,7 +55,7 @@ http.interceptors.response.use(
         router.push('/login')
         message.error(t('http.sessionExpired'))
       }
-    } else {
+    } else if (!error.config?.silentError) {
       message.error(error.message || t('http.networkError'))
     }
     return Promise.reject(error)
