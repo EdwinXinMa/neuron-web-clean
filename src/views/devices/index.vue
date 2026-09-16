@@ -400,6 +400,7 @@
                   </a-tooltip> -->
                 </div>
               </div>
+              <div class="pile-firmware">{{ t('device.firmware') }}: {{ pile.chargeVersion || '—' }}</div>
               <!-- 充电信息（充电中显示电量） -->
               <div v-if="pile.hasDlmData && pile.chargeEVStatus === 'Charging' && pile.connectStatus !== 'offline' && pile.energy" class="pile-charge-info">
                 <span>{{ t('device.energyLabel') }} <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
@@ -717,7 +718,9 @@
               charger.charge_EVStatus = dp.charge_EVStatus;
               charger.energy = dp.energy;
               charger.workMode = dp.workMode;
-              charger.charge_version = dp.charge_version;
+              if (typeof dp.charge_version === 'string' && dp.charge_version.trim()) {
+                charger.charge_version = dp.charge_version.trim();
+              }
               charger.snr = dp.snr;
               charger.atten = dp.atten;
               if (dp.connectors && charger.connectors) {
@@ -1051,7 +1054,7 @@
         chargeEVStatus: pile.charge_EVStatus ?? null,
         energy: pile.energy ?? null,
         workMode: pile.workMode ?? 'unknown',
-        chargeVersion: pile.charge_version ?? null,
+        chargeVersion: typeof pile.charge_version === 'string' ? pile.charge_version.trim() : null,
         snr: pile.snr ?? null,
         atten: pile.atten ?? null,
         hasDlmData: pile.connectStatus != null,
