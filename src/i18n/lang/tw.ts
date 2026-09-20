@@ -60,6 +60,8 @@ export default {
   },
 
   overview: {
+    deviceDistribution: "全球設備分布",
+    worldView: "全球視圖",
     totalDevices: '設備總數',
     todayStats: '今日統計',
     activeDevices: '活躍 {n} 台',
@@ -150,6 +152,15 @@ export default {
   },
 
   device: {
+    allocationMode: "電流分配模式",
+    allocationAverage: "平均分配",
+    allocationFifo: "先到先得",
+    allocationLoading: "讀取中…",
+    allocationReadFailed: "讀取失敗",
+    allocationRetry: "重試",
+    allocationSaved: "電流分配模式已儲存",
+    allocationSaveFailed: "無法確認設定結果，請重新查詢",
+
     searchSn: '按序列號搜索...',
     totalDevices: '共 {n} 台',
     noMatchingDevices: '無匹配設備',

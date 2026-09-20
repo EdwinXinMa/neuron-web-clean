@@ -314,6 +314,27 @@
                 <a-button v-else-if="selectedDevice.status === 'online'" type="link" size="small" class="action-btn" @click="openDlmModal">{{ t('device.modify') }}</a-button>
               </span>
             </div>
+            <div v-if="allocationDeviceSn" class="info-row allocation-row">
+              <span class="info-label">{{ t('device.allocationMode') }}</span>
+              <span class="info-value allocation-value" aria-live="polite">
+                <template v-if="allocationPhase === 'loading'">
+                  <LoadingOutlined /> {{ t('device.allocationLoading') }}
+                </template>
+                <template v-else-if="allocationPhase === 'error'">
+                  <span class="allocation-error">{{ t('device.allocationReadFailed') }}</span>
+                  <a-button type="link" size="small" class="action-btn" @click="refreshAllocation">
+                    {{ t('device.allocationRetry') }}
+                  </a-button>
+                </template>
+                <template v-else-if="allocationMode">
+                  {{ t(allocationMode === 'Average' ? 'device.allocationAverage' : 'device.allocationFifo') }}
+                </template>
+                <a-button v-if="allocationPhase !== 'error'" type="link" size="small" class="action-btn"
+                  :disabled="allocationPhase !== 'ready' || allocationSaving" @click="editAllocation">
+                  {{ t('device.modify') }}
+                </a-button>
+              </span>
+            </div>
           </div>
 
           <!-- 下挂充电桩（跨两列） -->
@@ -379,6 +400,7 @@
                   </a-tooltip> -->
                 </div>
               </div>
+              <div class="pile-firmware">{{ t('device.firmware') }}: {{ pile.chargeVersion || '—' }}</div>
               <!-- 充电信息（充电中显示电量） -->
               <div v-if="pile.hasDlmData && pile.chargeEVStatus === 'Charging' && pile.connectStatus !== 'offline' && pile.energy" class="pile-charge-info">
                 <span>{{ t('device.energyLabel') }} <strong>{{ (pile.energy / 1000).toFixed(2) }} kWh</strong></span>
@@ -455,6 +477,20 @@
         </div>
       </div>
     </div>
+
+    <a-modal v-model:open="allocationDialogOpen" :title="t('device.allocationMode')"
+      :ok-text="t('common.confirm')" :cancel-text="t('common.cancel')"
+      :confirm-loading="allocationSaving" :closable="!allocationSaving"
+      :mask-closable="!allocationSaving" :keyboard="!allocationSaving"
+      :cancel-button-props="{ disabled: allocationSaving }"
+      :ok-button-props="{ disabled: !allocationDraft || allocationDraft === allocationMode || !allocationDeviceSn }"
+      @ok="saveAllocation">
+      <p class="allocation-device-sn">{{ allocationDeviceSn }}</p>
+      <a-radio-group v-model:value="allocationDraft" :disabled="allocationSaving" class="allocation-options">
+        <a-radio value="Average">{{ t('device.allocationAverage') }}</a-radio>
+        <a-radio value="FIFO">{{ t('device.allocationFifo') }}</a-radio>
+      </a-radio-group>
+    </a-modal>
 
     <!-- DLM 修改 Modal -->
     <a-modal
@@ -626,7 +662,8 @@
   import { useRoute, useRouter } from 'vue-router';
   import { message, Modal } from 'ant-design-vue';
   import { useI18n } from 'vue-i18n';
-  import { getDeviceList, getDeviceDetail } from '@/api/device';
+  import { getDeviceList, getDeviceDetail, getAllocationMode, setAllocationMode } from '@/api/device';
+  import { useAllocationMode } from '../../composables/useAllocationMode';
   import http from '@/api/http';
   import { useDeviceEvents, subscribeDlm } from '@/composables/useDeviceEvents';
   import { ReloadOutlined, LoadingOutlined, ShopOutlined, AppstoreOutlined, TagOutlined, CalendarOutlined, DashboardOutlined, ThunderboltOutlined, CarOutlined, BarChartOutlined, SwapOutlined, EyeOutlined, EyeInvisibleOutlined, QuestionCircleOutlined, WarningOutlined } from '@ant-design/icons-vue';
@@ -639,7 +676,7 @@
       // DLMStatus 实时推送：直接更新 ctData，不用拉接口
       try {
         const dlm = JSON.parse(event.data);
-        if (deviceDetail.value) {
+        if (deviceDetail.value?.device?.sn === selectedSn.value) {
           // 收到 DLMStatus 说明设备在线
           if (deviceDetail.value.device) {
             deviceDetail.value.device.onlineStatus = 'ONLINE';
@@ -681,7 +718,9 @@
               charger.charge_EVStatus = dp.charge_EVStatus;
               charger.energy = dp.energy;
               charger.workMode = dp.workMode;
-              charger.charge_version = dp.charge_version;
+              if (typeof dp.charge_version === 'string' && dp.charge_version.trim()) {
+                charger.charge_version = dp.charge_version.trim();
+              }
               charger.snr = dp.snr;
               charger.atten = dp.atten;
               if (dp.connectors && charger.connectors) {
@@ -705,6 +744,10 @@
       return;
     }
     // 其他事件（ONLINE/OFFLINE/FAULT/ALERT）：刷新列表和详情
+    if (event.deviceSn === selectedSn.value && deviceDetail.value?.device?.sn === selectedSn.value
+      && (event.type === 'ONLINE' || event.type === 'OFFLINE')) {
+      deviceDetail.value.device.onlineStatus = event.type;
+    }
     loadList();
     if (selectedSn.value) {
       loadDetail(selectedSn.value);
@@ -854,7 +897,11 @@
   }
 
   // ==================== 详情数据加载 ====================
+  let detailRequest = 0;
   async function loadDetail(sn: string) {
+    if (sn !== selectedSn.value) return;
+    const requestId = ++detailRequest;
+    const isCurrent = () => requestId === detailRequest && sn === selectedSn.value;
     detailLoading.value = true;
     deviceLogsData.value = [];
     chargingSessionsData.value = [];
@@ -865,6 +912,7 @@
         http.get('/oplog/list', { params: { deviceSn: sn, pageSize: 20 } }),
         http.get(`/device/${sn}/charging-sessions`, { params: { pageSize: 10 } }),
       ]);
+      if (!isCurrent()) return;
       deviceDetail.value = detailRes.result || detailRes;
       const logData = logRes.result || logRes;
       deviceLogsData.value = (logData.records || []).map((l: any) => ({
@@ -877,9 +925,9 @@
       const chargeData = chargeRes.result || chargeRes;
       chargingSessionsData.value = chargeData.records || [];
     } catch (e: any) {
-      message.error(t('device.loadDetailFailed'));
+      if (isCurrent()) message.error(t('device.loadDetailFailed'));
     } finally {
-      detailLoading.value = false;
+      if (isCurrent()) detailLoading.value = false;
     }
   }
 
@@ -959,7 +1007,7 @@
 
   const selectedDevice = computed(() => {
     const d = deviceDetail.value?.device;
-    if (!d) return null;
+    if (!d || d.sn !== selectedSn.value) return null;
     const ct = deviceDetail.value?.ctData || {};
     // 适配层：统一字段名，兼容模板
     return {
@@ -1006,7 +1054,7 @@
         chargeEVStatus: pile.charge_EVStatus ?? null,
         energy: pile.energy ?? null,
         workMode: pile.workMode ?? 'unknown',
-        chargeVersion: pile.charge_version ?? null,
+        chargeVersion: typeof pile.charge_version === 'string' ? pile.charge_version.trim() : null,
         snr: pile.snr ?? null,
         atten: pile.atten ?? null,
         hasDlmData: pile.connectStatus != null,
@@ -1023,6 +1071,19 @@
       })),
     };
   });
+  const allocationDeviceSn = computed<string | null>(() => {
+    const device = selectedDevice.value;
+    return device?.status === 'online' && device.deviceType === 'N3_LITE' ? device.sn : null;
+  });
+  const {
+    mode: allocationMode, phase: allocationPhase, saving: allocationSaving,
+    dialogOpen: allocationDialogOpen, draft: allocationDraft,
+    refresh: refreshAllocation, edit: editAllocation, save: saveAllocation,
+  } = useAllocationMode(allocationDeviceSn, { get: getAllocationMode, set: setAllocationMode }, {
+    saved: () => message.success(t('device.allocationSaved')),
+    failed: () => message.error(t('device.allocationSaveFailed')),
+  });
+
   const deviceAlerts = computed(() => {
     return (deviceDetail.value?.recentAlerts || []).slice(0, 3).map((a: any) => ({
       level: a.alertLevel === 'CRITICAL' ? 'critical'
@@ -1922,6 +1983,11 @@
 </script>
 
 <style scoped>
+  .allocation-row { gap: 12px; flex-wrap: wrap; }
+  .allocation-value { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+  .allocation-error { color: #b45309; }
+  .allocation-device-sn { color: #64748b; overflow-wrap: anywhere; }
+  .allocation-options { display: flex; flex-direction: column; gap: 14px; margin: 20px 0; }
   .devices-view {
     display: flex;
     height: 100%;

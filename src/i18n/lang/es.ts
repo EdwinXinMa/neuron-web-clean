@@ -62,6 +62,8 @@ export default {
   },
 
   overview: {
+    deviceDistribution: "Distribución global de dispositivos",
+    worldView: "Vista mundial",
     totalDevices: 'Total de Dispositivos',
     todayStats: 'Estadísticas de hoy',
     activeDevices: '{n} Activos',
@@ -152,6 +154,15 @@ export default {
   },
 
   device: {
+    allocationMode: "Modo de distribución de corriente",
+    allocationAverage: "Reparto equitativo",
+    allocationFifo: "Por orden de llegada",
+    allocationLoading: "Consultando…",
+    allocationReadFailed: "No se pudo consultar",
+    allocationRetry: "Reintentar",
+    allocationSaved: "Modo de distribución guardado",
+    allocationSaveFailed: "No se pudo confirmar el cambio. Consulta el modo de nuevo.",
+
     searchSn: 'Buscar por número de serie...',
     totalDevices: '{n} dispositivos',
     noMatchingDevices: 'Sin dispositivos',
